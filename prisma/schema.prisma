@@ -1,0 +1,200 @@
+// SQLite for the demo. In production: Postgres hosted in an India region (DPDP Act 2023).
+// SQLite has no enums, so enum-like fields are Strings; allowed values are noted inline.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// One mobile number often covers a whole family, so consent and language live here.
+model Contact {
+  mobile         String    @id
+  lang           String    @default("te") // en | te | hi
+  consentAt      DateTime?
+  consentVersion String?
+  createdAt      DateTime  @default(now())
+  patients       Patient[]
+}
+
+model Patient {
+  id        String   @id @default(cuid())
+  name      String
+  mobile    String
+  contact   Contact  @relation(fields: [mobile], references: [mobile])
+  birthYear Int?
+  orders    Order[]
+  createdAt DateTime @default(now())
+
+  @@unique([mobile, name])
+}
+
+model Doctor {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  orders Order[]
+}
+
+model Order {
+  id         String         @id // LIS order id, e.g. ORD-71204
+  patientId  String
+  patient    Patient        @relation(fields: [patientId], references: [id])
+  doctorId   String?
+  doctor     Doctor?        @relation(fields: [doctorId], references: [id])
+  status     String // PROCESSING | READY (READY = signed by pathologist)
+  isCritical Boolean        @default(false)
+  signedAt   DateTime?
+  pdfPath    String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  results    Result[]
+  summary    Summary?
+  links      ReportLink[]
+  messages   Message[]
+  callbacks  CallbackTask[]
+
+  @@index([patientId])
+}
+
+model Result {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  position  Int
+  parameter String
+  unit      String?
+  valueText String
+  value     Float?
+  rangeText String
+  flag      String // NORMAL | LOW | HIGH | UNKNOWN  (rule-based, never AI)
+  critical  Boolean @default(false)
+}
+
+model Summary {
+  id         String        @id @default(cuid())
+  orderId    String        @unique
+  order      Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  source     String // TEMPLATE | AI | MIXED | NONE_CRITICAL | NONE_NORMAL
+  content    String // JSON: SummaryContent
+  flagCount  Int           @default(0)
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime      @default(now())
+  flags      SummaryFlag[]
+}
+
+model SummaryFlag {
+  id        String   @id @default(cuid())
+  summaryId String
+  summary   Summary  @relation(fields: [summaryId], references: [id], onDelete: Cascade)
+  lang      String
+  createdAt DateTime @default(now())
+}
+
+/// Only a SHA-256 hash of the link token is stored.
+model ReportLink {
+  id            String    @id @default(cuid())
+  tokenHash     String    @unique
+  orderId       String
+  order         Order     @relation(fields: [orderId], references: [id])
+  mobile        String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  firstOpenedAt DateTime?
+  openCount     Int       @default(0)
+  createdBy     String // SYSTEM | staff id
+  createdAt     DateTime  @default(now())
+  messages      Message[]
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  orderId   String?
+  order     Order?      @relation(fields: [orderId], references: [id])
+  linkId    String?
+  link      ReportLink? @relation(fields: [linkId], references: [id])
+  mobile    String
+  channel   String // WHATSAPP | SMS
+  kind      String // REPORT_LINK | OTP
+  body      String
+  status    String // QUEUED | DELIVERED | FAILED
+  error     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([createdAt])
+}
+
+model Otp {
+  id         String    @id @default(cuid())
+  mobile     String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([mobile, createdAt])
+}
+
+/// PATIENT = OTP login (all orders on the mobile); LINK = one order via an unexpired link; STAFF.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  kind      String
+  mobile    String?
+  staffId   String?
+  orderId   String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Staff {
+  id           String @id @default(cuid())
+  name         String
+  username     String @unique
+  passwordHash String
+  role         String // FRONT_DESK | OPS
+}
+
+model AccessLog {
+  id        String   @id @default(cuid())
+  actorType String // PATIENT | LINK | STAFF | SYSTEM
+  actorId   String
+  action    String
+  orderId   String?
+  patientId String?
+  detail    String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([patientId])
+  @@index([createdAt])
+}
+
+model CallbackTask {
+  id        String    @id @default(cuid())
+  orderId   String
+  order     Order     @relation(fields: [orderId], references: [id])
+  reason    String
+  status    String    @default("OPEN") // OPEN | DONE
+  createdAt DateTime  @default(now())
+  doneAt    DateTime?
+  doneBy    String?
+}
+
+model ImportRun {
+  id             String   @id @default(cuid())
+  fileName       String
+  fileHash       String   @unique
+  rows           Int
+  ordersUpserted Int
+  ordersSigned   Int
+  errors         String?
+  createdAt      DateTime @default(now())
+}

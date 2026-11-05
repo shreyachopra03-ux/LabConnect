@@ -1,0 +1,144 @@
+# Company A: Report Delivery
+
+When the pathologist signs a report, the patient automatically gets a secure link on WhatsApp. The link opens the report with a short explanation in English, Telugu or Hindi. Patients should never have to call the lab to ask if a report is ready.
+
+This repo is the **core slice** from the brief, built end to end:
+
+| # | Brief requirement | Where |
+|---|---|---|
+| 1 | LIS CSV import, fed by the export folder | `src/lib/lis/` (folder watcher + importer) |
+| 2 | Automatic report link on sign-off | `src/lib/delivery.ts`, `src/lib/links.ts` |
+| 3 | Patient OTP portal: orders, status, PDF | `/login`, `/orders`, `/reports/[id]` |
+| 4 | Plain-language summary of out-of-range values (EN / TE / HI) | `src/lib/summary/` |
+| 5 | Front-desk console: find patient, resend, delivery status, access log | `/staff` |
+| + | Delivery & access stats, critical-value callbacks, summary review queue | `/staff` |
+
+Messaging, the LIS and the AI are mocked behind small interfaces. The demo is seeded from the sample data in the brief.
+
+---
+
+## Run it
+
+Needs Node 20+.
+
+```bash
+npm install
+cp .env.example .env      # defaults work as-is
+npm run setup             # creates the SQLite DB and seeds it through the real import pipeline
+npm run dev               # http://localhost:3000
+```
+
+`npm run setup` prints the demo logins and an already-expired link.
+
+| Who | Where | Login |
+|---|---|---|
+| Patient | `/login` | `9000000001` (Lakshmi and her mother, Kamala, on one number), `9000000002` (Venkata), `9000000099` (Farzana) |
+| Mock phone | `/dev/outbox` | Shows every OTP and WhatsApp/SMS message the system "sent" |
+| Front desk | `/staff` | `frontdesk` / `frontdesk123` |
+
+### Demo script (5 minutes)
+
+1. **Open the link a patient received.** Go to `/dev/outbox` and open Lakshmi's WhatsApp link. Tap **Open report**, accept consent, and read the haemoglobin summary. Switch to తెలుగు, then download the PDF.
+2. **Critical value.** Open Farzana's link: potassium is 6.8. There is no summary, only "our team will call you". Her number is not on WhatsApp in the mock, so the outbox shows the SMS fallback.
+3. **Family on one number.** Log in at `/login` with `9000000001` and use the OTP from the outbox. Both Lakshmi's and Kamala's reports are listed. Kamala's Vitamin B12 has no locked template, so it gets an AI sentence when `ANTHROPIC_API_KEY` is set, or a safe generic sentence when it isn't.
+4. **Sign-off triggers delivery.** Venkata's ORD-71219 is still "Being tested". Run `npm run lis:drop-sample`. This drops a new LIS export in which the pathologist signed it. Within about 15 seconds the watcher imports it and his WhatsApp link appears in the outbox. No one presses anything.
+5. **Expired link.** Open the expired link printed by `setup`. It offers to send a code to `••••••0001`, and after the OTP the report opens.
+6. **Front desk.** At `/staff`, review the 7-day delivery stats, the open callback for Farzana and the import history. Search `lakshmi`, then **Resend link** by SMS: the old link stops working. The access log shows every view, download, resend and staff action.
+
+### Tests
+
+```bash
+npm test          # range parsing, rule flags, critical limits, CSV, phone numbers, templates
+npm run typecheck
+npm run build
+```
+
+---
+
+## How it works
+
+```
+LIS (unchanged) ── writes CSV + signed PDF ──▶ lis-export/inbox, lis-export/reports
+                                                    │  polled every 15s (src/instrumentation.ts)
+                                                    ▼
+                                  importer: upsert patient / order / results
+                                  flags from reference ranges (rules, not AI)
+                                                    │  status became READY?
+                                                    ▼
+                         ┌──────────── critical? ────────────┐
+                        yes                                   no
+              no summary, callback task             summary: locked template → AI → generic
+                         └──────────────┬─────────────────────┘
+                                        ▼
+                   72h link (token hash stored) → WhatsApp, SMS fallback
+                                        ▼
+            /r/<token> → tap "Open report" → session for that ONE order
+            after 72h → OTP to the registered number → full portal
+```
+
+**Stack:** Next.js 16 (App Router, server components, server actions), TypeScript, Prisma, SQLite.
+Every page renders on the server and every form also works with JavaScript off. That matters for low-end phones on weak data: the login page is about 9 KB of HTML and uses no web fonts.
+
+### The hard part: secure expiring links with OTP
+
+- **Tokens.** 192-bit random tokens. Only a SHA-256 hash is stored, so a database leak exposes no working links.
+- **Scope.** A link unlocks **one order** for at most 60 minutes, and never beyond the link's own 72-hour expiry. Seeing every report on the number needs an OTP.
+- **Link previews.** Opening the link page does nothing by itself. The report unlocks only on a POST from the "Open report" button, so WhatsApp link previews and URL scanners can't consume or log a view.
+- **Resend.** A front-desk resend revokes every older link for that order.
+- **Expiry.** After 72 hours the page offers an OTP to the *registered* number. The number is shown masked and the user cannot type a different one.
+- **OTP limits.** 6 digits, 5-minute expiry, 5 attempts, at most 3 codes per number per 10 minutes. Codes are stored hashed with a pepper. The login form behaves the same for unknown numbers, so it can't be used to discover patients.
+- **No enumeration.** Another patient's order ID returns a 404, exactly like one that doesn't exist.
+- **Headers.** HttpOnly SameSite cookies, `Referrer-Policy: same-origin` so tokens never leak to other sites, `X-Frame-Options: DENY` and `noindex`.
+
+### The AI summary and its guardrails
+
+- **Flags come from rules.** Whether a value is high or low is decided only by the report's own reference range (`src/lib/clinical/ranges.ts`).
+- **Locked templates.** The common tests use pathologist-approved sentences in three languages (`src/lib/summary/catalog.ts`). The demo ships 10 tests; the brief's 30 use the same shape.
+- **AI fallback.** Tests without a template use Claude, which only explains a direction that the rules already decided. Output is validated JSON with a length cap and an 8-second timeout. On any failure it falls back to "please ask your doctor".
+- **Critical values** get no summary and create a callback task for staff.
+- **Review loop.** Every summary links to the full report, carries a "not a diagnosis" note, and has a **Tell us** button for patients to flag it. Flagged and AI-written summaries go to a review queue in the console, which supports the pathologist's 50-a-week review.
+
+### DPDP Act 2023
+
+- **Consent** is recorded per mobile number with a version, before any report is shown.
+- **Access log.** An append-only log records who did what, on which order, when and from which IP: patient views, PDF downloads, link opens, staff searches, views and resends.
+- **No health data in messages.** WhatsApp and SMS carry only a first name, the order ID and the link.
+- **Hosting in India.** The production setup is Postgres plus object storage in an Indian region. SQLite is used here only for the demo.
+
+### Design
+
+The design uses one accent colour, white space, a 19px base font and 58px tap targets, with one main action per screen. Telugu and Hindi get extra line height and rely on the phone's own system fonts. Results appear as a short list with plain High/Low labels instead of a dense table. The staff console uses the same visual language at a denser size.
+
+---
+
+## Mocked vs. real
+
+| Here | In production |
+|---|---|
+| `MOCK_MESSAGING=true`: messages stored and shown at `/dev/outbox` | WhatsApp Business API (approved templates) and a DLT-registered SMS gateway, with delivery receipts by webhook |
+| LIS export simulated by the seed and `lis:drop-sample` | The LIS's real export folder or share. The CSV contract is documented in `src/lib/lis/import.ts` |
+| SQLite, local `storage/` | Postgres and encrypted object storage in an Indian region |
+| Seeded staff passwords | SSO or per-staff accounts with role-based access |
+
+## Not built yet (optional depth from the brief)
+
+- **Referring-doctor view** (last 90 days of their patients' reports). The data model already links orders to doctors; this needs doctor login and a list page.
+- **Full operations report** (CSV export, per-centre breakdown). The console already shows a 7-day delivery and access summary.
+- **Amended reports.** A re-signed report is not re-sent yet.
+- **Before go-live:** pathologist sign-off on the critical limits and the 30 templates, plus native-speaker review of the Telugu and Hindi copy.
+
+## Project layout
+
+```
+prisma/schema.prisma      data model (contacts, patients, orders, results, links, messages, audit…)
+prisma/seed.ts            sample data → CSV + PDFs → real import pipeline
+src/lib/lis/              CSV parser, importer, folder watcher
+src/lib/clinical/         reference-range rules, critical limits
+src/lib/summary/          locked templates (EN/TE/HI), AI fallback, summary builder
+src/lib/links.ts          expiring link tokens
+src/lib/otp.ts            OTP issue / verify with limits
+src/lib/session.ts        patient, link-scoped and staff sessions
+src/lib/delivery.ts       on sign-off: summary/callback → link → WhatsApp/SMS
+src/app/                  patient screens, /r/[token], /staff console, /dev/outbox
+tests/                    unit tests
+```

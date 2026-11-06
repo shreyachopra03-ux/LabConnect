@@ -3,7 +3,6 @@ import { isLang } from "@/lib/i18n";
 
 export function GET(req: NextRequest) {
   const set = req.nextUrl.searchParams.get("set");
-  // Go back to the page the user was on (same-origin only).
   const ref = req.headers.get("referer");
   const back = ref && new URL(ref).origin === req.nextUrl.origin ? ref : new URL("/", req.url);
   const res = NextResponse.redirect(back);

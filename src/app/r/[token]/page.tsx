@@ -7,10 +7,6 @@ import { linkOtpAction, openLinkAction } from "../../patient-actions";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Landing page for WhatsApp/SMS links. Rendering it has no side effects: the
- * report is unlocked only by the POST button, so link-preview bots can't use it up.
- */
 export default async function LinkLanding(props: { params: Promise<{ token: string }>; searchParams: Promise<{ e?: string }> }) {
   const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
   const lang = await getLang();

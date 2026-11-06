@@ -11,13 +11,6 @@ import { normalizeMobile } from "../phone";
 import { findTest } from "../summary/catalog";
 import { mapStatus, parseCsv, splitParameterUnit } from "./csv";
 
-/**
- * LIS export contract (one row per test parameter):
- *   order_id, patient_name, mobile, parameter, result, reference_range, status   (required)
- *   unit, referring_doctor, signed_at, birth_year, language, pdf_file              (optional)
- * Signed PDFs are dropped by the LIS in <LIS_EXPORT_DIR>/reports/<order_id>.pdf.
- * We never write to the LIS; we only read its export folder.
- */
 const REQUIRED = ["order_id", "patient_name", "mobile", "parameter", "result", "reference_range", "status"];
 
 export type ImportOutcome = { file: string; rows: number; orders: number; signed: string[]; errors: string[]; skipped?: boolean };
@@ -93,8 +86,6 @@ export async function importFile(file: string): Promise<ImportOutcome> {
   });
   moveToProcessed(file);
 
-  // Sign-off triggers delivery. Done after the import is recorded so a messaging
-  // failure never blocks the import itself.
   for (const id of signed) {
     await onReportSigned(id).catch((e) => console.error(`[delivery] ${id}:`, e));
   }
@@ -102,7 +93,6 @@ export async function importFile(file: string): Promise<ImportOutcome> {
   return { file: name, rows: rows.length, orders: byOrder.size, signed, errors };
 }
 
-/** Returns true when the order has just moved to READY (signed). */
 async function upsertOrder(orderId: string, rs: Record<string, string>[]): Promise<boolean> {
   const head = rs[0];
   const mobile = normalizeMobile(head.mobile);

@@ -27,7 +27,6 @@ export default async function ReportPage(props: {
       summary: true,
     },
   });
-  // Same response for "doesn't exist" and "not yours": no order-id enumeration.
   if (!order || !canViewOrder(s, order)) notFound();
   if (!order.patient.contact.consentAt) redirect(`/consent?next=${encodeURIComponent(here)}`);
 

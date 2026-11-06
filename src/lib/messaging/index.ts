@@ -4,11 +4,6 @@ import type { Lang } from "../i18n";
 
 export type Channel = "WHATSAPP" | "SMS";
 
-/**
- * Provider boundary. In production this calls a WhatsApp Business API / DLT-registered
- * SMS gateway and receives delivery receipts by webhook. Here it is mocked: every
- * message is stored and visible at /dev/outbox.
- */
 async function deliver(channel: Channel, mobile: string, body: string): Promise<{ ok: boolean; error?: string }> {
   if (!config.mockMessaging) throw new Error("No real messaging provider configured");
   if (channel === "WHATSAPP" && mobile.endsWith(config.mockFailWhatsappSuffix)) {
@@ -34,7 +29,6 @@ export async function sendMessage(m: {
   });
 }
 
-/** No health data in the message itself: just first name, order id and the link. */
 function reportLinkText(lang: Lang, firstName: string, orderId: string, url: string) {
   switch (lang) {
     case "te":
@@ -46,7 +40,6 @@ function reportLinkText(lang: Lang, firstName: string, orderId: string, url: str
   }
 }
 
-/** WhatsApp first; falls back to SMS automatically if WhatsApp fails. */
 export async function sendReportLink(p: {
   orderId: string;
   linkId: string;

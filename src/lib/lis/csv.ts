@@ -1,4 +1,3 @@
-/** Minimal RFC 4180 CSV parser (quotes, escaped quotes, CRLF, BOM). Returns rows keyed by snake_case header. */
 export function parseCsv(text: string): Record<string, string>[] {
   const src = text.replace(/^﻿/, "");
   const rows: string[][] = [];
@@ -37,13 +36,11 @@ export function parseCsv(text: string): Record<string, string>[] {
   return nonEmpty.slice(1).map((r) => Object.fromEntries(header.map((h, i) => [h, (r[i] ?? "").trim()])));
 }
 
-/** "Haemoglobin g/dL" -> { parameter: "Haemoglobin", unit: "g/dL" } when the LIS has no unit column. */
 export function splitParameterUnit(raw: string): { parameter: string; unit: string | null } {
   const m = raw.trim().match(/^(.*\S)\s+(\S*(?:\/|%)\S*)$/);
   return m ? { parameter: m[1], unit: m[2] } : { parameter: raw.trim(), unit: null };
 }
 
-/** LIS status text -> our status. "Ready (critical)" is READY + critical. */
 export function mapStatus(raw: string): { status: "READY" | "PROCESSING"; critical: boolean } {
   const s = raw.trim().toLowerCase();
   const critical = s.includes("critical");

@@ -22,7 +22,6 @@ import {
 
 const str = (fd: FormData, k: string) => (fd.get(k) ?? "").toString();
 
-/* ---------- OTP login ---------- */
 
 export async function requestOtpAction(fd: FormData) {
   const next = safeNext(str(fd, "next"));
@@ -46,8 +45,6 @@ export async function verifyOtpAction(fd: FormData) {
   const mobile = await getPendingMobile();
   if (!mobile) redirect(withNext("/login", next));
 
-  // Validate on the server, not with a strict browser pattern: accept spaces, dashes
-  // or a pasted SMS ("948750 is your code…"). A wrong length doesn't use up an attempt.
   const raw = str(fd, "code");
   const code = raw.match(/\d{6}/)?.[0] ?? raw.replace(/\D/g, "");
   if (code.length !== 6) redirect(withNext("/login/verify", next, { e: "format" }));
@@ -64,7 +61,6 @@ export async function verifyOtpAction(fd: FormData) {
   redirect(next ?? "/orders");
 }
 
-/* ---------- Consent (DPDP Act 2023) ---------- */
 
 export async function consentAction(fd: FormData) {
   const next = safeNext(str(fd, "next"));
@@ -78,9 +74,7 @@ export async function consentAction(fd: FormData) {
   redirect(next ?? "/orders");
 }
 
-/* ---------- Report links ---------- */
 
-/** POST-only so WhatsApp link previews and scanners never "open" the report. */
 export async function openLinkAction(fd: FormData) {
   const token = str(fd, "token");
   const { state, link } = await resolveLink(token);
@@ -101,7 +95,6 @@ export async function openLinkAction(fd: FormData) {
   redirect(`/reports/${link.orderId}`);
 }
 
-/** Expired link: send an OTP to the number the link was issued to (never shown in full). */
 export async function linkOtpAction(fd: FormData) {
   const token = str(fd, "token");
   const { state, link } = await resolveLink(token);
@@ -112,7 +105,6 @@ export async function linkOtpAction(fd: FormData) {
   redirect(withNext("/login/verify", next));
 }
 
-/* ---------- Summary feedback ---------- */
 
 export async function flagSummaryAction(fd: FormData) {
   const orderId = str(fd, "orderId");

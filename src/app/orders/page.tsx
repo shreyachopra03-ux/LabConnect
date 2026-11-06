@@ -14,7 +14,6 @@ export default async function OrdersPage() {
   const contact = await db.contact.findUnique({ where: { mobile: s.mobile } });
   if (!contact?.consentAt) redirect("/consent?next=/orders");
 
-  // One number often covers a whole family: group by person.
   const patients = await db.patient.findMany({
     where: { mobile: s.mobile },
     orderBy: { name: "asc" },

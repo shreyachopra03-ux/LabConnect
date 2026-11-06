@@ -1,0 +1,65 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
+import { verifyPassword } from "@/lib/crypto";
+import { db } from "@/lib/db";
+import { sendLinkForOrder } from "@/lib/delivery";
+import { scanInbox } from "@/lib/lis/import";
+import { endStaffSession, getStaff, startStaffSession } from "@/lib/session";
+
+const str = (fd: FormData, k: string) => (fd.get(k) ?? "").toString().trim();
+
+async function requireStaff() {
+  const staff = await getStaff();
+  if (!staff) redirect("/staff/login");
+  return staff;
+}
+
+export async function staffLoginAction(fd: FormData) {
+  const user = await db.staff.findUnique({ where: { username: str(fd, "username").toLowerCase() } });
+  if (!user || !verifyPassword(str(fd, "password"), user.passwordHash)) redirect("/staff/login?e=1");
+  await startStaffSession(user.id);
+  await audit({ actorType: "STAFF", actorId: user.id, action: "STAFF_LOGIN" });
+  redirect("/staff");
+}
+
+export async function staffLogoutAction() {
+  await endStaffSession();
+  redirect("/staff/login");
+}
+
+export async function resendLinkAction(fd: FormData) {
+  const staff = await requireStaff();
+  const orderId = str(fd, "orderId");
+  const channel = str(fd, "channel") === "SMS" ? "SMS" : "WHATSAPP";
+  const order = await db.order.findUnique({ where: { id: orderId } });
+  if (!order || order.status !== "READY") redirect(`/staff?e=notready`);
+  await sendLinkForOrder(orderId, staff.id, channel);
+  redirect(`/staff/patients/${order.patientId}?sent=${encodeURIComponent(orderId)}`);
+}
+
+export async function completeCallbackAction(fd: FormData) {
+  const staff = await requireStaff();
+  const task = await db.callbackTask.update({
+    where: { id: str(fd, "taskId") },
+    data: { status: "DONE", doneAt: new Date(), doneBy: staff.name },
+  });
+  await audit({ actorType: "STAFF", actorId: staff.id, action: "CALLBACK_DONE", orderId: task.orderId });
+  revalidatePath("/staff");
+}
+
+export async function scanLisAction() {
+  const staff = await requireStaff();
+  const out = await scanInbox();
+  await audit({ actorType: "STAFF", actorId: staff.id, action: "LIS_SCAN", detail: `${out.length} file(s)` });
+  redirect(`/staff?scanned=${out.length}`);
+}
+
+export async function markReviewedAction(fd: FormData) {
+  const staff = await requireStaff();
+  const s = await db.summary.update({ where: { id: str(fd, "summaryId") }, data: { reviewedAt: new Date(), reviewedBy: staff.name } });
+  await audit({ actorType: "STAFF", actorId: staff.id, action: "SUMMARY_REVIEWED", orderId: s.orderId });
+  revalidatePath("/staff");
+}

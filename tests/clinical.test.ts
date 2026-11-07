@@ -5,7 +5,7 @@ import { flagValue, parseRange, parseValue } from "../src/lib/clinical/ranges";
 import { mapStatus, parseCsv, splitParameterUnit } from "../src/lib/lis/csv";
 import { normalizeMobile } from "../src/lib/phone";
 import { buildSummary } from "../src/lib/summary";
-import { findTest } from "../src/lib/summary/catalog";
+import { CATALOG, findTest } from "../src/lib/summary/catalog";
 
 test("parses reference ranges from the LIS", () => {
   assert.deepEqual(parseRange("12.0-15.5"), { low: 12, high: 15.5 });
@@ -57,4 +57,18 @@ test("summary uses locked templates in all three languages", async () => {
   assert.match(content.items[0].text.en, /lower than normal/);
   assert.match(content.items[0].text.te, /తక్కువగా/);
   assert.match(content.items[0].text.hi, /कम/);
+});
+
+test("catalog covers 30 tests, each with full EN/TE/HI text", () => {
+  assert.equal(CATALOG.length, 30);
+  assert.equal(new Set(CATALOG.map((e) => e.key)).size, 30);
+  for (const e of CATALOG) {
+    assert.ok(e.low || e.high, `${e.key} has no template`);
+    for (const t of [e.name, e.low, e.high]) {
+      if (t) for (const l of ["en", "te", "hi"] as const) assert.ok(t[l].length > 0, `${e.key} missing ${l}`);
+    }
+  }
+  assert.equal(findTest("SGPT")?.key, "alt");
+  assert.equal(findTest("Random blood sugar")?.key, "glucose_random");
+  assert.equal(findTest("Magnesium"), null);
 });

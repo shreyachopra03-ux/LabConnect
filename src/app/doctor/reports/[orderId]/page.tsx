@@ -31,6 +31,10 @@ export default async function DoctorReport(props: { params: Promise<{ orderId: s
         {order.pdfPath && <a className="btn" href={`/doctor/reports/${order.id}/pdf`}>Signed PDF</a>}
       </div>
 
+      {order.amendedAt && (
+        <p className="notice small" style={{ marginTop: 16 }}>Amended report: re-signed with changed results on {fmtTime(order.amendedAt)}. This is the latest version.</p>
+      )}
+
       {order.isCritical && (
         <p className="error" style={{ marginTop: 16 }}>
           Critical value. The patient was not sent a summary; lab staff have a callback task.

@@ -29,7 +29,17 @@ export async function sendMessage(m: {
   });
 }
 
-function reportLinkText(lang: Lang, firstName: string, orderId: string, url: string) {
+function reportLinkText(lang: Lang, firstName: string, orderId: string, url: string, amended: boolean) {
+  if (amended) {
+    switch (lang) {
+      case "te":
+        return `Company A Diagnostics: ${firstName} గారి రిపోర్ట్ (${orderId}) నవీకరించబడింది. తాజా వెర్షన్ ఇక్కడ తెరవండి: ${url} — ఈ లింక్ 72 గంటలు పనిచేస్తుంది.`;
+      case "hi":
+        return `Company A Diagnostics: ${firstName} की रिपोर्ट (${orderId}) अपडेट की गई है। नया संस्करण यहाँ खोलें: ${url} — यह लिंक 72 घंटे तक चलेगा।`;
+      default:
+        return `Company A Diagnostics: The report for ${firstName} (${orderId}) has been updated. Open the latest version here: ${url} — the link works for 72 hours.`;
+    }
+  }
   switch (lang) {
     case "te":
       return `Company A Diagnostics: ${firstName} గారి రిపోర్ట్ (${orderId}) సిద్ధంగా ఉంది. ఇక్కడ తెరవండి: ${url} — ఈ లింక్ 72 గంటలు పనిచేస్తుంది.`;
@@ -48,8 +58,9 @@ export async function sendReportLink(p: {
   patientName: string;
   url: string;
   channel?: Channel;
+  amended?: boolean;
 }) {
-  const body = reportLinkText(p.lang, p.patientName.split(" ")[0], p.orderId, p.url);
+  const body = reportLinkText(p.lang, p.patientName.split(" ")[0], p.orderId, p.url, !!p.amended);
   const first = p.channel ?? "WHATSAPP";
   let msg = await sendMessage({ mobile: p.mobile, channel: first, kind: "REPORT_LINK", body, orderId: p.orderId, linkId: p.linkId });
   if (msg.status === "FAILED" && first === "WHATSAPP") {

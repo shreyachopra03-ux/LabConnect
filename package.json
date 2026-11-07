@@ -8,9 +8,10 @@
     "build": "next build",
     "start": "next start",
     "setup": "prisma db push --force-reset --skip-generate && prisma generate && prisma db seed",
-    "lis:drop-sample": "node scripts/drop-sample.mjs",
+    "lis:drop-sample": "node scripts/drop-sample.mjs signed",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "lis:drop-amendment": "node scripts/drop-sample.mjs amended"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

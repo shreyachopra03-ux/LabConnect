@@ -1,0 +1,4 @@
+order_id,patient_name,mobile,birth_year,language,parameter,unit,result,reference_range,status,referring_doctor,pdf_file
+ORD-71204,Lakshmi Prasanna K,9000000001,1968,te,Haemoglobin,g/dL,9.6,12.0-15.5,Ready,Dr. S. Ramanaiah,ORD-71204_v2.pdf
+ORD-71204,Lakshmi Prasanna K,9000000001,1968,te,Total WBC count,10^3/uL,7.2,4.0-11.0,Ready,Dr. S. Ramanaiah,ORD-71204_v2.pdf
+ORD-71204,Lakshmi Prasanna K,9000000001,1968,te,Platelets,10^3/uL,245,150-450,Ready,Dr. S. Ramanaiah,ORD-71204_v2.pdf

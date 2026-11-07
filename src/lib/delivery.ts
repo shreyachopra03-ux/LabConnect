@@ -11,7 +11,7 @@ import { buildSummary } from "./summary";
  *     Otherwise         -> plain-language summary of out-of-range values.
  *  2. Issue a 72-hour link and send it on WhatsApp (SMS fallback).
  */
-export async function onReportSigned(orderId: string) {
+export async function onReportSigned(orderId: string, opts: { amended?: boolean } = {}) {
   const order = await db.order.findUniqueOrThrow({
     where: { id: orderId },
     include: { results: { orderBy: { position: "asc" } }, patient: true },
@@ -35,19 +35,34 @@ export async function onReportSigned(orderId: string) {
     await db.summary.upsert({
       where: { orderId },
       create: { orderId, source, content: JSON.stringify(content) },
-      update: { source, content: JSON.stringify(content), reviewedAt: null, reviewedBy: null },
+      update: { source, content: JSON.stringify(content), reviewedAt: null, reviewedBy: null, withdrawnAt: null, withdrawnBy: null },
     });
   }
 
-  await sendLinkForOrder(orderId, "SYSTEM");
+  await sendLinkForOrder(orderId, "SYSTEM", undefined, opts.amended);
 }
 
+/**
+ * The pathologist re-signed a report with changed results. Summary and critical
+ * checks are rebuilt from the new results, older links are revoked, and the patient
+ * gets an "updated report" message.
+ */
+export const onReportAmended = (orderId: string) => onReportSigned(orderId, { amended: true });
+
+export const consentWithdrawn = (c: { consentAt: Date | null; consentWithdrawnAt: Date | null }) =>
+  !!c.consentWithdrawnAt && !c.consentAt;
+
 /** Issues a fresh link (revoking older ones) and sends it. Used on sign-off and by front-desk resend. */
-export async function sendLinkForOrder(orderId: string, actorId: string, channel?: Channel) {
+export async function sendLinkForOrder(orderId: string, actorId: string, channel?: Channel, amended = false) {
   const order = await db.order.findUniqueOrThrow({
     where: { id: orderId },
     include: { patient: { include: { contact: true } } },
   });
+  if (consentWithdrawn(order.patient.contact)) {
+    // DPDP: the patient withdrew consent, so nothing is sent to this number.
+    await audit({ actorType: actorId === "SYSTEM" ? "SYSTEM" : "STAFF", actorId, action: "LINK_SKIPPED_NO_CONSENT", orderId, patientId: order.patientId });
+    return null;
+  }
   const { link, url } = await issueLink(orderId, order.patient.mobile, actorId);
   const lang = isLang(order.patient.contact.lang) ? order.patient.contact.lang : "te";
   const msg = await sendReportLink({
@@ -58,11 +73,12 @@ export async function sendLinkForOrder(orderId: string, actorId: string, channel
     patientName: order.patient.name,
     url,
     channel,
+    amended,
   });
   await audit({
     actorType: actorId === "SYSTEM" ? "SYSTEM" : "STAFF",
     actorId,
-    action: actorId === "SYSTEM" ? "LINK_SENT_ON_SIGNOFF" : "LINK_RESENT",
+    action: actorId !== "SYSTEM" ? "LINK_RESENT" : amended ? "LINK_SENT_ON_AMENDMENT" : "LINK_SENT_ON_SIGNOFF",
     orderId,
     patientId: order.patientId,
     detail: `${msg.channel} ${msg.status}`,

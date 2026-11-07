@@ -23,10 +23,11 @@ type Row = {
   reference_range: string;
   status: string;
   referring_doctor: string;
+  pdf_file: string;
 };
 
 const COLS: (keyof Row)[] = [
-  "order_id", "patient_name", "mobile", "birth_year", "language", "parameter", "unit", "result", "reference_range", "status", "referring_doctor",
+  "order_id", "patient_name", "mobile", "birth_year", "language", "parameter", "unit", "result", "reference_range", "status", "referring_doctor", "pdf_file",
 ];
 
 // The three rows from the brief, plus a family member on Lakshmi's number and a few normal values.
@@ -48,7 +49,7 @@ const ROWS: Row[] = [
 ];
 
 function r(...v: string[]): Row {
-  return Object.fromEntries(COLS.map((c, i) => [c, v[i]])) as Row;
+  return Object.fromEntries(COLS.map((c, i) => [c, v[i] ?? ""])) as Row;
 }
 
 const toCsv = (rows: Row[]) =>
@@ -107,6 +108,7 @@ async function main() {
   const password = process.env.SEED_STAFF_PASSWORD || "frontdesk123";
   await db.staff.create({ data: { name: "Priya (Front desk)", username: "frontdesk", passwordHash: hashPassword(password), role: "FRONT_DESK" } });
   await db.staff.create({ data: { name: "Ravi (Operations)", username: "ops", passwordHash: hashPassword(password), role: "OPS" } });
+  await db.staff.create({ data: { name: "Dr. A. Rao (Pathologist)", username: "pathologist", passwordHash: hashPassword(password), role: "PATHOLOGIST" } });
 
   // Signed PDFs, as the LIS would drop them.
   const byOrder = new Map<string, Row[]>();
@@ -121,6 +123,13 @@ async function main() {
   // Later export where the pathologist signs ORD-71219. Drop it in with `npm run lis:drop-sample`.
   const signedLater = ROWS.filter((x) => x.order_id === "ORD-71219").map((x) => ({ ...x, status: "Ready" }));
   fs.writeFileSync(path.join(config.lisDir, "samples", "LIS_EXPORT_1130_ORD-71219_signed.csv"), toCsv(signedLater));
+
+  // Later still: the pathologist corrects Lakshmi's haemoglobin and re-signs. `npm run lis:drop-amendment`
+  const amended = ROWS.filter((x) => x.order_id === "ORD-71204").map((x) =>
+    x.parameter === "Haemoglobin" ? { ...x, result: "9.6", pdf_file: "ORD-71204_v2.pdf" } : { ...x, pdf_file: "ORD-71204_v2.pdf" },
+  );
+  fs.writeFileSync(path.join(config.lisDir, "samples", "ORD-71204_v2.pdf"), await makePdf("ORD-71204", amended));
+  fs.writeFileSync(path.join(config.lisDir, "samples", "LIS_EXPORT_1400_ORD-71204_amended.csv"), toCsv(amended));
 
   const out = await scanInbox();
 
@@ -154,9 +163,11 @@ async function main() {
   Mock outbox      ${config.appUrl}/dev/outbox   (OTP codes and WhatsApp links appear here)
   Front desk       ${config.appUrl}/staff        frontdesk / ${password}
   Ops head         ${config.appUrl}/staff/reports  ops / ${password}
+  Pathologist      ${config.appUrl}/staff/summaries  pathologist / ${password}
   Doctor           ${config.appUrl}/doctor       9100000001 (Dr. S. Ramanaiah), 9100000002, 9100000003
   Expired link     ${config.appUrl}/r/${expiredRaw}
   Sign-off demo    npm run lis:drop-sample        (signs ORD-71219; watcher sends the link)
+  Amendment demo   npm run lis:drop-amendment     (re-signs ORD-71204 with a corrected value)
 `);
 }
 

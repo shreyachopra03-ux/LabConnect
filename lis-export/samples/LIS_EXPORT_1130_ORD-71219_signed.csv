@@ -1,3 +1,3 @@
-order_id,patient_name,mobile,birth_year,language,parameter,unit,result,reference_range,status,referring_doctor
-ORD-71219,Venkata Rao M,9000000002,1955,te,LDL cholesterol,mg/dL,142,0-100,Ready,Dr. P. Anitha
-ORD-71219,Venkata Rao M,9000000002,1955,te,Total cholesterol,mg/dL,228,0-200,Ready,Dr. P. Anitha
+order_id,patient_name,mobile,birth_year,language,parameter,unit,result,reference_range,status,referring_doctor,pdf_file
+ORD-71219,Venkata Rao M,9000000002,1955,te,LDL cholesterol,mg/dL,142,0-100,Ready,Dr. P. Anitha,
+ORD-71219,Venkata Rao M,9000000002,1955,te,Total cholesterol,mg/dL,228,0-200,Ready,Dr. P. Anitha,

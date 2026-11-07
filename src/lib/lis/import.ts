@@ -5,7 +5,7 @@ import { flagValue, parseRange, parseValue } from "../clinical/ranges";
 import { config } from "../config";
 import { sha256 } from "../crypto";
 import { db } from "../db";
-import { onReportSigned } from "../delivery";
+import { onReportAmended, onReportSigned } from "../delivery";
 import { isLang } from "../i18n";
 import { normalizeMobile } from "../phone";
 import { findTest } from "../summary/catalog";
@@ -13,7 +13,7 @@ import { mapStatus, parseCsv, splitParameterUnit } from "./csv";
 
 const REQUIRED = ["order_id", "patient_name", "mobile", "parameter", "result", "reference_range", "status"];
 
-export type ImportOutcome = { file: string; rows: number; orders: number; signed: string[]; errors: string[]; skipped?: boolean };
+export type ImportOutcome = { file: string; rows: number; orders: number; signed: string[]; amended: string[]; errors: string[]; skipped?: boolean };
 
 const inboxDir = () => path.join(config.lisDir, "inbox");
 const processedDir = () => path.join(config.lisDir, "processed");
@@ -47,7 +47,7 @@ export async function importFile(file: string): Promise<ImportOutcome> {
 
   if (await db.importRun.findUnique({ where: { fileHash } })) {
     moveToProcessed(file);
-    return { file: name, rows: 0, orders: 0, signed: [], errors: [], skipped: true };
+    return { file: name, rows: 0, orders: 0, signed: [], amended: [], errors: [], skipped: true };
   }
 
   const rows = parseCsv(text);
@@ -64,10 +64,13 @@ export async function importFile(file: string): Promise<ImportOutcome> {
   }
 
   const signed: string[] = [];
+  const amended: string[] = [];
   let upserted = 0;
   for (const [orderId, rs] of byOrder) {
     try {
-      if (await upsertOrder(orderId, rs)) signed.push(orderId);
+      const change = await upsertOrder(orderId, rs);
+      if (change === "SIGNED") signed.push(orderId);
+      if (change === "AMENDED") amended.push(orderId);
       upserted++;
     } catch (e) {
       errors.push(`${orderId}: ${(e as Error).message}`);
@@ -89,11 +92,15 @@ export async function importFile(file: string): Promise<ImportOutcome> {
   for (const id of signed) {
     await onReportSigned(id).catch((e) => console.error(`[delivery] ${id}:`, e));
   }
-  console.log(`[lis] ${name}: ${rows.length} rows, ${byOrder.size} orders, ${signed.length} newly signed, ${errors.length} errors`);
-  return { file: name, rows: rows.length, orders: byOrder.size, signed, errors };
+  for (const id of amended) {
+    await onReportAmended(id).catch((e) => console.error(`[delivery] ${id}:`, e));
+  }
+  console.log(`[lis] ${name}: ${rows.length} rows, ${byOrder.size} orders, ${signed.length} newly signed, ${amended.length} amended, ${errors.length} errors`);
+  return { file: name, rows: rows.length, orders: byOrder.size, signed, amended, errors };
 }
 
-async function upsertOrder(orderId: string, rs: Record<string, string>[]): Promise<boolean> {
+/** SIGNED = just became READY; AMENDED = was already READY and the results changed. */
+async function upsertOrder(orderId: string, rs: Record<string, string>[]): Promise<"SIGNED" | "AMENDED" | null> {
   const head = rs[0];
   const mobile = normalizeMobile(head.mobile);
   if (!mobile) throw new Error(`invalid mobile "${head.mobile}"`);
@@ -129,7 +136,16 @@ async function upsertOrder(orderId: string, rs: Record<string, string>[]): Promi
   });
   const isCritical = lisCritical || results.some((r) => r.critical);
 
-  const prev = await db.order.findUnique({ where: { id: orderId }, select: { status: true, signedAt: true, patientId: true } });
+  const prev = await db.order.findUnique({
+    where: { id: orderId },
+    select: {
+      status: true,
+      signedAt: true,
+      amendedAt: true,
+      patientId: true,
+      results: { orderBy: { position: "asc" }, select: { parameter: true, unit: true, valueText: true, rangeText: true } },
+    },
+  });
   if (prev && prev.patientId !== patient.id) throw new Error("order already belongs to a different patient");
 
   let pdfPath: string | null = null;
@@ -145,15 +161,21 @@ async function upsertOrder(orderId: string, rs: Record<string, string>[]): Promi
   const signedAt =
     status === "READY" ? (head.signed_at ? new Date(head.signed_at) : prev?.signedAt ?? new Date()) : null;
 
+  const fingerprint = (rows: { parameter: string; unit: string | null; valueText: string; rangeText: string }[]) =>
+    JSON.stringify(rows.map((r) => [r.parameter, r.unit ?? "", r.valueText, r.rangeText]));
+  const isAmendment = status === "READY" && prev?.status === "READY" && fingerprint(prev.results) !== fingerprint(results);
+  const amendedAt = isAmendment ? new Date() : prev?.amendedAt ?? null;
+
   await db.$transaction([
     db.order.upsert({
       where: { id: orderId },
       create: { id: orderId, patientId: patient.id, doctorId: doctor?.id, status, isCritical, signedAt, pdfPath },
-      update: { doctorId: doctor?.id, status, isCritical, signedAt, ...(pdfPath && { pdfPath }) },
+      update: { doctorId: doctor?.id, status, isCritical, signedAt, amendedAt, ...(pdfPath && { pdfPath }) },
     }),
     db.result.deleteMany({ where: { orderId } }),
     ...results.map((r) => db.result.create({ data: { ...r, orderId } })),
   ]);
 
-  return status === "READY" && prev?.status !== "READY";
+  if (status === "READY" && prev?.status !== "READY") return "SIGNED";
+  return isAmendment ? "AMENDED" : null;
 }

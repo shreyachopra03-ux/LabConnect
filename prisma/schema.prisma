@@ -16,6 +16,7 @@ model Contact {
   lang           String    @default("te") // en | te | hi
   consentAt      DateTime?
   consentVersion String?
+  consentWithdrawnAt DateTime? // DPDP: patient withdrew consent; no more links are sent
   createdAt      DateTime  @default(now())
   patients       Patient[]
 }
@@ -48,6 +49,7 @@ model Order {
   status     String // PROCESSING | READY (READY = signed by pathologist)
   isCritical Boolean        @default(false)
   signedAt   DateTime?
+  amendedAt  DateTime? // set when a signed report is re-signed with changed results
   pdfPath    String?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
@@ -83,6 +85,8 @@ model Summary {
   flagCount  Int           @default(0)
   reviewedAt DateTime?
   reviewedBy String?
+  withdrawnAt DateTime? // pathologist pulled the summary; patient sees the full report only
+  withdrawnBy String?
   createdAt  DateTime      @default(now())
   flags      SummaryFlag[]
 }
@@ -159,7 +163,7 @@ model Staff {
   name         String
   username     String @unique
   passwordHash String
-  role         String // FRONT_DESK | OPS
+  role         String // FRONT_DESK | OPS | PATHOLOGIST
 }
 
 model AccessLog {

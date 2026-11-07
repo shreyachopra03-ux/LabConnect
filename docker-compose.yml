@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab_dev_password}
       POSTGRES_DB: ${POSTGRES_DB:-reports}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -29,38 +29,25 @@ services:
     depends_on:
       - db
 
-  # Applies pending migrations once, then exits. The app waits for it.
-  migrate:
-    build:
-      context: .
-      target: builder
-    command: npx prisma migrate deploy
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab_dev_password}@db:5432/${POSTGRES_DB:-reports}?schema=public
-    depends_on:
-      db:
-        condition: service_healthy
-    profiles: ["app"]
-
+  # Production build. On start it applies migrations (and seeds demo data if DEMO_MODE=true).
   app:
-    build:
-      context: .
-      target: runner
+    build: .
     restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab_dev_password}@db:5432/${POSTGRES_DB:-reports}?schema=public
       NODE_ENV: production
+      STORAGE_DIR: /app/data/storage
+      LIS_EXPORT_DIR: /app/data/lis-export
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     volumes:
-      - ./lis-export:/app/lis-export
-      - reports:/app/storage
+      - appdata:/app/data
     depends_on:
-      migrate:
-        condition: service_completed_successfully
+      db:
+        condition: service_healthy
     profiles: ["app"]
 
 volumes:
   pgdata:
-  reports:
+  appdata:

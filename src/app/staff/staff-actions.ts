@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { verifyPassword } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { sendLinkForOrder } from "@/lib/delivery";
+import { demoMode, dropDemoExport } from "@/lib/lis/demo";
 import { scanInbox } from "@/lib/lis/import";
 import { endStaffSession, getStaff, startStaffSession } from "@/lib/session";
 
@@ -55,6 +56,17 @@ export async function scanLisAction() {
   const staff = await requireStaff();
   const out = await scanInbox();
   await audit({ actorType: "STAFF", actorId: staff.id, action: "LIS_SCAN", detail: `${out.length} file(s)` });
+  redirect(`/staff?scanned=${out.length}`);
+}
+
+/** Demo only: simulate the LIS dropping an export (sign-off or amendment), then import it right away. */
+export async function simulateLisAction(fd: FormData) {
+  const staff = await requireStaff();
+  if (!demoMode()) redirect("/staff");
+  const which = str(fd, "which") === "amended" ? "amended" : "signed";
+  dropDemoExport(which);
+  const out = await scanInbox();
+  await audit({ actorType: "STAFF", actorId: staff.id, action: "LIS_DEMO_SIMULATED", detail: which });
   redirect(`/staff?scanned=${out.length}`);
 }
 

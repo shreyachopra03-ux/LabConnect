@@ -141,6 +141,24 @@ The design uses one accent colour, white space, a 19px base font and 58px tap ta
 | Postgres in Docker, PDFs on a local volume | Managed Postgres and encrypted object storage in an Indian region |
 | Seeded staff passwords | SSO or per-staff accounts with role-based access |
 
+## Deploy (Railway)
+
+The app needs a long-running server (the LIS watcher), PostgreSQL and a disk for PDFs, so it runs as a Docker container rather than on a serverless host. `railway.json` configures the build and the `/api/health` check. On every start the container applies migrations (`scripts/start.sh`) and, with `DEMO_MODE=true`, seeds the demo data once into an empty database.
+
+1. Push the repo to GitHub. In Railway: **New Project → Deploy from GitHub repo**.
+2. **+ Create → Database → PostgreSQL**.
+3. On the app service, **Variables**:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `OTP_PEPPER` = 64 random hex characters
+   - `APP_URL` = the service's public https URL (**Settings → Networking → Generate Domain**)
+   - `DEMO_MODE=true`, `MOCK_MESSAGING=true`, `LIS_WATCH=true`
+   - `SEED_STAFF_PASSWORD` = a password for the demo staff accounts
+   - `RAILWAY_RUN_UID=0` (lets the container write to the volume)
+4. **+ Create → Volume**, attach it to the app service at `/app/data` (PDFs and the LIS folder).
+5. Pick region **Southeast Asia** and redeploy. The deploy log shows `[seed] … Seed complete` and `Ready`.
+
+On the hosted demo, the front-desk console has **Simulate sign-off** and **Simulate amendment** buttons that do what `npm run lis:drop-sample` does locally.
+
 ## Production readiness
 
 Already in place:

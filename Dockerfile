@@ -8,29 +8,31 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
 
-# ---- Build (also used by the one-off `migrate` service) ----
+# ---- Build ----
 FROM deps AS builder
 COPY . .
 RUN npx prisma generate && npm run build
 
-# ---- Runtime: small image, non-root user ----
+# ---- Runtime ----
+# Keeps the Prisma CLI and tsx so the container can run migrations and the demo
+# seed on start (scripts/start.sh). A slimmer standalone image is possible once
+# demo seeding is no longer needed.
 FROM node:22.11-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    STORAGE_DIR=/app/data/storage \
+    LIS_EXPORT_DIR=/app/data/lis-export
 
 RUN addgroup -S app && adduser -S app -G app
-COPY --from=builder --chown=app:app /app/.next/standalone ./
-COPY --from=builder --chown=app:app /app/.next/static ./.next/static
-COPY --from=builder --chown=app:app /app/node_modules/.prisma ./node_modules/.prisma
-RUN mkdir -p storage/reports lis-export/inbox lis-export/processed lis-export/reports \
- && chown -R app:app storage lis-export
+COPY --from=builder --chown=app:app /app ./
+RUN mkdir -p /app/data && chown -R app:app /app/data
 
 USER app
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s \
-  CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
-CMD ["node", "server.js"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+  CMD wget -qO- http://127.0.0.1:${PORT}/api/health || exit 1
+CMD ["sh", "scripts/start.sh"]

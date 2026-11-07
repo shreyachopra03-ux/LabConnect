@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import { fmtTime, pct } from "@/lib/format";
 import { formatMobile, normalizeMobile } from "@/lib/phone";
 import { getStaff } from "@/lib/session";
-import { completeCallbackAction, scanLisAction } from "./staff-actions";
+import { demoMode } from "@/lib/lis/demo";
+import { completeCallbackAction, scanLisAction, simulateLisAction } from "./staff-actions";
 
 export default async function StaffConsole(props: { searchParams: Promise<{ q?: string; scanned?: string }> }) {
   const searchParams = await props.searchParams;
@@ -179,9 +180,23 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
       <section className="section">
         <div className="section-head">
           <h2>LIS import</h2>
-          <form action={scanLisAction}>
-            <button className="btn secondary" type="submit">Scan export folder now</button>
-          </form>
+          <div className="row">
+            {demoMode() && (
+              <>
+                <form action={simulateLisAction}>
+                  <input type="hidden" name="which" value="signed" />
+                  <button className="btn secondary" type="submit" title="Demo: the pathologist signs ORD-71219">Simulate sign-off</button>
+                </form>
+                <form action={simulateLisAction}>
+                  <input type="hidden" name="which" value="amended" />
+                  <button className="btn secondary" type="submit" title="Demo: ORD-71204 is corrected and re-signed">Simulate amendment</button>
+                </form>
+              </>
+            )}
+            <form action={scanLisAction}>
+              <button className="btn secondary" type="submit">Scan export folder now</button>
+            </form>
+          </div>
         </div>
         {searchParams.scanned && (
           <p className="notice small">Scan finished: {searchParams.scanned} new file(s) imported.</p>

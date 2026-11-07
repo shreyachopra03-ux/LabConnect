@@ -164,7 +164,7 @@ On the hosted demo, the front-desk console has **Simulate sign-off** and **Simul
 Already in place:
 
 - **PostgreSQL with versioned migrations** (`prisma/migrations`). Deploys run `npm run db:migrate`, never a reset.
-- **Docker image**: multi-stage build, standalone server, non-root user, health check. `docker compose --profile app up` runs database, migrations and app.
+- **Docker image**: multi-stage build, non-root user, health check, migrations on start. `docker compose --profile app up` runs database, migrations and app.
 - **Fail-fast config check** (`src/lib/env-check.ts`). In production the app refuses to start with a weak `OTP_PEPPER`, a non-HTTPS `APP_URL`, a non-Postgres database, or mock messaging (unless `DEMO_MODE=true`).
 - **`/api/health`** checks the app and the database for the load balancer.
 - **Cleanup**: expired sessions and old OTPs are purged hourly. Access logs are kept.

@@ -11,8 +11,6 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Self-contained server build for the Docker image.
-  output: "standalone",
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

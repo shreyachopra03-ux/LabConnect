@@ -4,6 +4,7 @@ import { PatientShell } from "@/components/PatientShell";
 import { config } from "@/lib/config";
 import { getLang, t, type MsgKey } from "@/lib/i18n";
 import { safeNext, withNext } from "@/lib/nav";
+import { latestMockCode } from "@/lib/otp";
 import { maskMobile } from "@/lib/phone";
 import { getPendingMobile } from "@/lib/session";
 import { resendOtpAction, verifyOtpAction } from "../../patient-actions";
@@ -17,6 +18,7 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
   const mobile = await getPendingMobile();
   if (!mobile) redirect(withNext("/login", next));
   const errorKey = searchParams.e ? ERRORS[searchParams.e] : undefined;
+  const demoCode = await latestMockCode(mobile);
 
   return (
     <PatientShell lang={lang}>
@@ -46,8 +48,11 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
       </div>
       {config.mockMessaging && (
         <p className="notice small" style={{ marginTop: 32 }}>
-          Demo: no real SMS is sent. Read the code in the <a href="/dev/outbox" target="_blank">mock outbox</a>. Codes
-          are only issued for numbers that have reports: 9000000001, 9000000002, 9000000099.
+          {demoCode ? (
+            <>Demo: no real SMS is sent. The latest code for this number is <strong className="mono">{demoCode}</strong>.</>
+          ) : (
+            <>Demo: no real SMS is sent, and codes are only issued for numbers that have reports: 9000000001, 9000000002, 9000000099.</>
+          )}
         </p>
       )}
     </PatientShell>

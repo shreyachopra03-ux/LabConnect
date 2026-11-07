@@ -35,6 +35,7 @@ model Patient {
 model Doctor {
   id     String  @id @default(cuid())
   name   String  @unique
+  mobile String? @unique // used for doctor OTP login
   orders Order[]
 }
 
@@ -147,6 +148,7 @@ model Session {
   kind      String
   mobile    String?
   staffId   String?
+  doctorId  String?
   orderId   String?
   expiresAt DateTime
   createdAt DateTime @default(now())

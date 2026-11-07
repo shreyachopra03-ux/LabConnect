@@ -6,6 +6,7 @@ import { db } from "./db";
 
 const PATIENT_COOKIE = "cl_pt";
 const STAFF_COOKIE = "cl_staff";
+const DOCTOR_COOKIE = "cl_dr";
 const OTP_PENDING_COOKIE = "cl_otp";
 
 const minutes = (n: number) => new Date(Date.now() + n * 60_000);
@@ -83,3 +84,20 @@ export async function getStaff() {
 }
 
 export const endStaffSession = () => end(STAFF_COOKIE);
+
+/* ---------- Referring doctor ---------- */
+
+export const startDoctorSession = (doctorId: string) =>
+  create(DOCTOR_COOKIE, { kind: "DOCTOR", doctorId }, minutes(config.staffSessionHours * 60));
+
+export async function getDoctor() {
+  const s = await read(DOCTOR_COOKIE);
+  if (!s?.doctorId) return null;
+  return db.doctor.findUnique({ where: { id: s.doctorId }, select: { id: true, name: true } });
+}
+
+export const endDoctorSession = () => end(DOCTOR_COOKIE);
+
+/** Doctors see their own patients' orders from the last 90 days. */
+export const DOCTOR_WINDOW_DAYS = 90;
+export const doctorWindowStart = () => new Date(Date.now() - DOCTOR_WINDOW_DAYS * 86_400_000);

@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { db } from "./db";
 
-export type ActorType = "PATIENT" | "LINK" | "STAFF" | "SYSTEM";
+export type ActorType = "PATIENT" | "LINK" | "STAFF" | "DOCTOR" | "SYSTEM";
 
 /** Append-only access log (DPDP: who saw which health record, when, from where). */
 export async function audit(e: {

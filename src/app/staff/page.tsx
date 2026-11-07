@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { fmtTime, pct } from "@/lib/format";
 import { formatMobile, normalizeMobile } from "@/lib/phone";
 import { getStaff } from "@/lib/session";
-import { completeCallbackAction, markReviewedAction, scanLisAction } from "./staff-actions";
+import { completeCallbackAction, scanLisAction } from "./staff-actions";
 
 export default async function StaffConsole(props: { searchParams: Promise<{ q?: string; scanned?: string }> }) {
   const searchParams = await props.searchParams;
@@ -127,8 +127,8 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
 
         <section>
           <div className="section-head">
-            <h2>Summaries to review</h2>
-            <span className="small muted">Flagged or AI-written</span>
+            <h2>Waiting for pathologist</h2>
+            <span className="small muted">Flagged or AI-written summaries</span>
           </div>
           {toReview.length === 0 && <div className="card empty">Nothing waiting for review.</div>}
           {toReview.map((s) => (
@@ -140,12 +140,11 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
                 </div>
                 {s.flagCount > 0 && <span className="pill high">Flagged ×{s.flagCount}</span>}
               </div>
-              <form action={markReviewedAction} style={{ marginTop: 8 }}>
-                <input type="hidden" name="summaryId" value={s.id} />
-                <button className="btn secondary" type="submit">Mark reviewed</button>
-              </form>
             </div>
           ))}
+          {staff.role === "PATHOLOGIST" && (
+            <p className="small" style={{ marginTop: 10 }}><Link href="/staff/summaries">Open review queue →</Link></p>
+          )}
         </section>
       </div>
 

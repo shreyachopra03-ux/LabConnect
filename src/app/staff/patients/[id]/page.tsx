@@ -7,9 +7,9 @@ import { fmtTime } from "@/lib/format";
 import { linkStatus } from "@/lib/links";
 import { formatMobile } from "@/lib/phone";
 import { getStaff } from "@/lib/session";
-import { resendLinkAction } from "../../staff-actions";
+import { recordWithdrawalAction, resendLinkAction } from "../../staff-actions";
 
-export default async function StaffPatient(props: { params: Promise<{ id: string }>; searchParams: Promise<{ sent?: string }> }) {
+export default async function StaffPatient(props: { params: Promise<{ id: string }>; searchParams: Promise<{ sent?: string; blocked?: string }> }) {
   const [params, searchParams] = await Promise.all([props.params, props.searchParams]);
   const staff = await getStaff();
   if (!staff) redirect("/staff/login");
@@ -49,7 +49,13 @@ export default async function StaffPatient(props: { params: Promise<{ id: string
       <p className="muted">
         <span className="mono">{formatMobile(patient.mobile)}</span>
         {patient.birthYear && <> · Born {patient.birthYear}</>} · Language {patient.contact.lang.toUpperCase()} ·{" "}
-        {patient.contact.consentAt ? <>Consent given {fmtTime(patient.contact.consentAt)}</> : <strong>No consent yet</strong>}
+        {patient.contact.consentAt ? (
+          <>Consent given {fmtTime(patient.contact.consentAt)}</>
+        ) : patient.contact.consentWithdrawnAt ? (
+          <strong style={{ color: "var(--danger)" }}>Consent withdrawn {fmtTime(patient.contact.consentWithdrawnAt)}: no links are sent</strong>
+        ) : (
+          <strong>No consent yet</strong>
+        )}
       </p>
       {family.length > 0 && (
         <p className="small">
@@ -61,6 +67,15 @@ export default async function StaffPatient(props: { params: Promise<{ id: string
             </span>
           ))}
         </p>
+      )}
+      {searchParams.blocked && (
+        <p className="error small">Not sent: this number has withdrawn consent. The patient can collect the report at the lab, or log in and give consent again.</p>
+      )}
+      {!patient.contact.consentWithdrawnAt && (
+        <form action={recordWithdrawalAction} style={{ marginBottom: 12 }}>
+          <input type="hidden" name="patientId" value={patient.id} />
+          <button className="linkbtn small" type="submit">Record consent withdrawal (patient asked by phone or at the desk)</button>
+        </form>
       )}
       {searchParams.sent && <p className="notice small">New link sent for {searchParams.sent}. Older links for that order no longer work.</p>}
 
@@ -76,6 +91,7 @@ export default async function StaffPatient(props: { params: Promise<{ id: string
                   <span className="muted small">· {o.results.map((r) => r.parameter).join(", ")}</span>
                   <div className="small muted">
                     {o.doctor?.name ?? "No referring doctor"} · Signed {fmtTime(o.signedAt)}
+                    {o.amendedAt && <> · <strong>Amended {fmtTime(o.amendedAt)}</strong></>}
                   </div>
                 </div>
                 <div className="row">

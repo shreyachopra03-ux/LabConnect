@@ -2,7 +2,7 @@
 
 When the pathologist signs a report, the patient automatically gets a secure link on WhatsApp. The link opens the report with a short explanation in English, Telugu or Hindi. Patients should never have to call the lab to ask if a report is ready.
 
-This repo is the **core slice** from the brief, built end to end:
+This repo covers the **core slice** from the brief end to end, plus all of the optional "must have" depth:
 
 | # | Brief requirement | Where |
 |---|---|---|
@@ -11,7 +11,9 @@ This repo is the **core slice** from the brief, built end to end:
 | 3 | Patient OTP portal: orders, status, PDF | `/login`, `/orders`, `/reports/[id]` |
 | 4 | Plain-language summary of out-of-range values (EN / TE / HI) | `src/lib/summary/` |
 | 5 | Front-desk console: find patient, resend, delivery status, access log | `/staff` |
-| + | Delivery & access stats, critical-value callbacks, summary review queue | `/staff` |
+| 6 | Referring-doctor view: last 90 days of their patients' reports | `/doctor` |
+| 7 | Delivery and access report for the operations head, with CSV export | `/staff/reports` |
+| + | Critical-value callbacks, summary review queue, 30 locked templates | `/staff`, `src/lib/summary/catalog.ts` |
 
 Messaging, the LIS and the AI are mocked behind small interfaces. The demo is seeded from the sample data in the brief.
 
@@ -35,20 +37,24 @@ npm run dev               # http://localhost:3000
 | Patient | `/login` | `9000000001` (Lakshmi and her mother, Kamala, on one number), `9000000002` (Venkata), `9000000099` (Farzana) |
 | Mock phone | `/dev/outbox` | Shows every OTP and WhatsApp/SMS message the system "sent" |
 | Front desk | `/staff` | `frontdesk` / `frontdesk123` |
+| Operations head | `/staff/reports` | `ops` / `frontdesk123` |
+| Referring doctor | `/doctor` | `9100000001` (Dr. S. Ramanaiah), `9100000002`, `9100000003`, OTP from the outbox |
 
 ### Demo script (5 minutes)
 
 1. **Open the link a patient received.** Go to `/dev/outbox` and open Lakshmi's WhatsApp link. Tap **Open report**, accept consent, and read the haemoglobin summary. Switch to తెలుగు, then download the PDF.
 2. **Critical value.** Open Farzana's link: potassium is 6.8. There is no summary, only "our team will call you". Her number is not on WhatsApp in the mock, so the outbox shows the SMS fallback.
-3. **Family on one number.** Log in at `/login` with `9000000001` and use the OTP from the outbox. Both Lakshmi's and Kamala's reports are listed. Kamala's Vitamin B12 has no locked template, so it gets an AI sentence when `ANTHROPIC_API_KEY` is set, or a safe generic sentence when it isn't.
+3. **Family on one number.** Log in at `/login` with `9000000001` and use the OTP from the outbox. Both Lakshmi's and Kamala's reports are listed. Kamala's Magnesium has no locked template, so it gets an AI sentence when `ANTHROPIC_API_KEY` is set, or a safe generic sentence when it isn't.
 4. **Sign-off triggers delivery.** Venkata's ORD-71219 is still "Being tested". Run `npm run lis:drop-sample`. This drops a new LIS export in which the pathologist signed it. Within about 15 seconds the watcher imports it and his WhatsApp link appears in the outbox. No one presses anything.
 5. **Expired link.** Open the expired link printed by `setup`. It offers to send a code to `••••••0001`, and after the OTP the report opens.
 6. **Front desk.** At `/staff`, review the 7-day delivery stats, the open callback for Farzana and the import history. Search `lakshmi`, then **Resend link** by SMS: the old link stops working. The access log shows every view, download, resend and staff action.
+7. **Referring doctor.** At `/doctor`, log in with `9100000001`. Dr. Ramanaiah sees Lakshmi's and Kamala's reports (not Farzana's, who has a different doctor), can filter by out-of-range or critical, open the results table, download the signed PDF and see what the patient was told.
+8. **Operations head.** Sign in to `/staff` as `ops`, then open **Reports**. It shows digital delivery against the 80% target, open rate, median time to open, WhatsApp vs SMS, failures, resends and callbacks for 7, 30 or 90 days, with a CSV download. The front-desk account can't open it.
 
 ### Tests
 
 ```bash
-npm test          # range parsing, rule flags, critical limits, CSV, phone numbers, templates
+npm test         
 npm run typecheck
 npm run build
 ```
@@ -88,12 +94,14 @@ Every page renders on the server and every form also works with JavaScript off. 
 - **Expiry.** After 72 hours the page offers an OTP to the *registered* number. The number is shown masked and the user cannot type a different one.
 - **OTP limits.** 6 digits, 5-minute expiry, 5 attempts, at most 3 codes per number per 10 minutes. Codes are stored hashed with a pepper. The login form behaves the same for unknown numbers, so it can't be used to discover patients.
 - **No enumeration.** Another patient's order ID returns a 404, exactly like one that doesn't exist.
+- **Doctors.** Referring doctors log in with their registered mobile and an OTP. They can open only orders they referred, only once signed, and only within 90 days. Everything else returns a 404.
+- **Roles.** The operations report and its CSV are limited to the ops role. The CSV is order-level only, with no patient names.
 - **Headers.** HttpOnly SameSite cookies, `Referrer-Policy: same-origin` so tokens never leak to other sites, `X-Frame-Options: DENY` and `noindex`.
 
 ### The AI summary and its guardrails
 
 - **Flags come from rules.** Whether a value is high or low is decided only by the report's own reference range (`src/lib/clinical/ranges.ts`).
-- **Locked templates.** The common tests use pathologist-approved sentences in three languages (`src/lib/summary/catalog.ts`). The demo ships 10 tests; the brief's 30 use the same shape.
+- **Locked templates.** The common tests use pathologist-approved sentences in three languages (`src/lib/summary/catalog.ts`). 30 tests are covered, as the brief asks.
 - **AI fallback.** Tests without a template use Claude, which only explains a direction that the rules already decided. Output is validated JSON with a length cap and an 8-second timeout. On any failure it falls back to "please ask your doctor".
 - **Critical values** get no summary and create a callback task for staff.
 - **Review loop.** Every summary links to the full report, carries a "not a diagnosis" note, and has a **Tell us** button for patients to flag it. Flagged and AI-written summaries go to a review queue in the console, which supports the pathologist's 50-a-week review.
@@ -120,11 +128,10 @@ The design uses one accent colour, white space, a 19px base font and 58px tap ta
 | SQLite, local `storage/` | Postgres and encrypted object storage in an Indian region |
 | Seeded staff passwords | SSO or per-staff accounts with role-based access |
 
-## Not built yet (optional depth from the brief)
+## Next steps
 
-- **Referring-doctor view** (last 90 days of their patients' reports). The data model already links orders to doctors; this needs doctor login and a list page.
-- **Full operations report** (CSV export, per-centre breakdown). The console already shows a 7-day delivery and access summary.
 - **Amended reports.** A re-signed report is not re-sent yet.
+- **Per-centre breakdown** in the operations report, once the LIS export includes the collection centre.
 - **Before go-live:** pathologist sign-off on the critical limits and the 30 templates, plus native-speaker review of the Telugu and Hindi copy.
 
 ## Project layout
@@ -139,6 +146,7 @@ src/lib/links.ts          expiring link tokens
 src/lib/otp.ts            OTP issue / verify with limits
 src/lib/session.ts        patient, link-scoped and staff sessions
 src/lib/delivery.ts       on sign-off: summary/callback → link → WhatsApp/SMS
-src/app/                  patient screens, /r/[token], /staff console, /dev/outbox
+src/app/                  patient screens, /r/[token], /doctor, /staff console + reports, /dev/outbox
+src/lib/ops-report.ts     delivery and access report for the operations head
 tests/                    unit tests
 ```

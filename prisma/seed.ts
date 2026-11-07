@@ -44,6 +44,7 @@ const ROWS: Row[] = [
   r("ORD-71240", "Kamala Devi K", "9000000001", "1946", "te", "Glucose fasting", "mg/dL", "132", "70-100", "Ready", "Dr. S. Ramanaiah"),
   r("ORD-71240", "Kamala Devi K", "9000000001", "1946", "te", "HbA1c", "%", "7.4", "4.0-5.6", "Ready", "Dr. S. Ramanaiah"),
   r("ORD-71240", "Kamala Devi K", "9000000001", "1946", "te", "Vitamin B12", "pg/mL", "160", "200-900", "Ready", "Dr. S. Ramanaiah"),
+  r("ORD-71240", "Kamala Devi K", "9000000001", "1946", "te", "Magnesium", "mg/dL", "1.4", "1.7-2.2", "Ready", "Dr. S. Ramanaiah"),
 ];
 
 function r(...v: string[]): Row {
@@ -123,6 +124,16 @@ async function main() {
 
   const out = await scanInbox();
 
+  // Referring doctors log in with their registered mobile + OTP.
+  const doctorMobiles: Record<string, string> = {
+    "Dr. S. Ramanaiah": "9100000001",
+    "Dr. P. Anitha": "9100000002",
+    "Dr. K. Suresh": "9100000003",
+  };
+  for (const [name, mobile] of Object.entries(doctorMobiles)) {
+    await db.doctor.update({ where: { name }, data: { mobile } });
+  }
+
   // An already-expired link, to demo the "expired -> OTP" path.
   const expiredRaw = randomToken(24);
   await db.reportLink.create({
@@ -142,6 +153,8 @@ async function main() {
   Patient portal   ${config.appUrl}/login        mobiles 9000000001 (Lakshmi + mother), 9000000002, 9000000099
   Mock outbox      ${config.appUrl}/dev/outbox   (OTP codes and WhatsApp links appear here)
   Front desk       ${config.appUrl}/staff        frontdesk / ${password}
+  Ops head         ${config.appUrl}/staff/reports  ops / ${password}
+  Doctor           ${config.appUrl}/doctor       9100000001 (Dr. S. Ramanaiah), 9100000002, 9100000003
   Expired link     ${config.appUrl}/r/${expiredRaw}
   Sign-off demo    npm run lis:drop-sample        (signs ORD-71219; watcher sends the link)
 `);

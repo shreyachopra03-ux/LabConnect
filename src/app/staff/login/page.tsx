@@ -4,6 +4,7 @@ export default async function StaffLogin(props: { searchParams: Promise<{ e?: st
   const searchParams = await props.searchParams;
   return (
     <div style={{ maxWidth: 380, margin: "48px auto" }}>
+      <span className="eyebrow">Lab team</span>
       <h1>Staff sign in</h1>
       <p className="muted">Front-desk console for report delivery.</p>
       <form action={staffLoginAction} className="stack" style={{ marginTop: 24 }}>

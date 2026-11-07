@@ -29,37 +29,38 @@ export default async function OrdersPage() {
 
   return (
     <PatientShell lang={lang} showLogout showPrivacy>
+      <span className="eyebrow">{t(lang, "secureAccess")}</span>
       <h1>{t(lang, "reportsTitle")}</h1>
-      {empty && <p className="muted">{t(lang, "noReports")}</p>}
+      {empty && <p className="lede">{t(lang, "noReports")}</p>}
 
       {patients.map((p) => (
         <section key={p.id}>
           {family && <h2 className="person">{p.name}</h2>}
-          {p.orders.map((o) => {
-            const ready = o.status === "READY";
-            return (
-              <article key={o.id} className="card" style={!family ? { marginTop: 14 } : undefined}>
-                <div className="card-head">
-                  <div>
-                    <div style={{ fontWeight: 650 }}>{o.results.map((r) => r.parameter).join(", ")}</div>
-                    <div className="muted small">
-                      {o.id} · {formatDate(o.signedAt ?? o.createdAt, lang)}
-                    </div>
+          <ul className="report-list" style={!family ? { marginTop: 24 } : undefined}>
+            {p.orders.map((o) => {
+              const ready = o.status === "READY";
+              return (
+                <li key={o.id} className="report-item">
+                  <div className="card-head">
+                    <h3>{o.results.map((r) => r.parameter).join(", ")}</h3>
+                    <span className={`pill ${ready ? "ready" : "processing"}`}>
+                      {t(lang, ready ? "statusReady" : "statusProcessing")}
+                    </span>
                   </div>
-                  <span className={`pill ${ready ? "ready" : "processing"}`}>
-                    {t(lang, ready ? "statusReady" : "statusProcessing")}
-                  </span>
-                </div>
-                {ready ? (
-                  <Link href={`/reports/${o.id}`} className="btn" style={{ marginTop: 14 }}>
-                    {t(lang, "viewReport")}
-                  </Link>
-                ) : (
-                  <p className="muted small" style={{ margin: "8px 0 0" }}>{t(lang, "processingHint")}</p>
-                )}
-              </article>
-            );
-          })}
+                  <div className="meta-line">
+                    <span className="mono">{o.id}</span> · {formatDate(o.signedAt ?? o.createdAt, lang)}
+                  </div>
+                  {ready ? (
+                    <Link href={`/reports/${o.id}`} className="btn">
+                      {t(lang, "viewReport")} <span className="arrow" aria-hidden="true">→</span>
+                    </Link>
+                  ) : (
+                    <p className="muted small" style={{ margin: 0 }}>{t(lang, "processingHint")}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </section>
       ))}
     </PatientShell>

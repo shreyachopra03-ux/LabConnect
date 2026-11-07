@@ -9,7 +9,7 @@ const ERRORS: Record<string, string> = {
   format: "Please enter all 6 digits of the code.",
   invalid: "That code is not correct. Please try again.",
   expired: "This code has expired. Please ask for a new one.",
-  locked: "Too many tries. Please ask for a new code.",
+  locked: "Too many tries. Please wait 15 minutes and try again.",
 };
 
 export default async function DoctorVerify(props: { searchParams: Promise<{ e?: string }> }) {
@@ -20,6 +20,7 @@ export default async function DoctorVerify(props: { searchParams: Promise<{ e?: 
 
   return (
     <div style={{ maxWidth: 380, margin: "48px auto" }}>
+      <span className="eyebrow">Step 2 of 2</span>
       <h1>Enter the 6-digit code</h1>
       <p className="muted">We sent a code by SMS to {maskMobile(mobile)}.</p>
       <form action={doctorVerifyOtpAction} className="stack" style={{ marginTop: 24 }}>

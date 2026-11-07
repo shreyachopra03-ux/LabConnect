@@ -52,7 +52,7 @@ export default async function StaffPatient(props: { params: Promise<{ id: string
         {patient.contact.consentAt ? (
           <>Consent given {fmtTime(patient.contact.consentAt)}</>
         ) : patient.contact.consentWithdrawnAt ? (
-          <strong style={{ color: "var(--danger)" }}>Consent withdrawn {fmtTime(patient.contact.consentWithdrawnAt)}: no links are sent</strong>
+          <strong style={{ color: "var(--critical)" }}>Consent withdrawn {fmtTime(patient.contact.consentWithdrawnAt)}: no links are sent</strong>
         ) : (
           <strong>No consent yet</strong>
         )}

@@ -11,6 +11,7 @@ export default async function DoctorLogin(props: { searchParams: Promise<{ e?: s
   const { e } = await props.searchParams;
   return (
     <div style={{ maxWidth: 380, margin: "48px auto" }}>
+      <span className="eyebrow">Referring doctors</span>
       <h1>Doctor sign in</h1>
       <p className="muted">Your patients’ reports from the last 90 days, in one place.</p>
       <form action={doctorRequestOtpAction} className="stack" style={{ marginTop: 24 }}>

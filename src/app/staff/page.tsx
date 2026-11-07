@@ -47,6 +47,8 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
 
   return (
     <>
+      <span className="eyebrow">Front desk</span>
+      <h1 style={{ marginBottom: 22 }}>Find a patient.</h1>
       <form className="searchbar" action="/staff">
         <input
           name="q"
@@ -117,10 +119,10 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
                 </div>
                 <span className="small muted">{fmtTime(c.createdAt)}</span>
               </div>
-              <p className="small" style={{ margin: "6px 0 12px" }}>{c.reason}. No summary was sent to the patient.</p>
+              <p className="small" style={{ margin: "6px 0 12px" }}>{c.reason}. The report link is held until this call is done; no summary is shown to the patient.</p>
               <form action={completeCallbackAction}>
                 <input type="hidden" name="taskId" value={c.id} />
-                <button className="btn secondary" type="submit">Mark as called</button>
+                <button className="btn" type="submit">Called · send report link</button>
               </form>
             </div>
           ))}
@@ -215,7 +217,7 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
                   <td className="mono">{r.rows}</td>
                   <td className="mono">{r.ordersUpserted}</td>
                   <td className="mono">{r.ordersSigned}</td>
-                  <td className="small" style={{ whiteSpace: "pre-line", color: r.errors ? "var(--danger)" : undefined }}>
+                  <td className="small" style={{ whiteSpace: "pre-line", color: r.errors ? "var(--critical)" : undefined }}>
                     {r.errors ?? "—"}
                   </td>
                 </tr>

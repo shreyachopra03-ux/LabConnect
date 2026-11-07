@@ -28,15 +28,16 @@ export default async function PrivacyPage(props: { searchParams: Promise<{ done?
 
   return (
     <PatientShell lang={lang}>
+      <span className="eyebrow">{t(lang, "privacyLink")}</span>
       <h1>{t(lang, "privacyTitle")}</h1>
-      <p>{t(lang, "privacyBody", { m: maskMobile(s.mobile) })}</p>
+      <p style={{ fontSize: "1.08rem" }}>{t(lang, "privacyBody", { m: maskMobile(s.mobile) })}</p>
       <p className="muted">{t(lang, "privacyFamily")}</p>
       <form action={withdrawConsentAction} className="stack" style={{ marginTop: 28 }}>
-        <button className="btn secondary" type="submit" style={{ color: "var(--danger)" }}>
+        <button className="btn secondary" type="submit" style={{ color: "var(--critical)" }}>
           {t(lang, "withdrawButton")}
         </button>
       </form>
-      <Link className="btn" href="/" style={{ marginTop: 14 }}>
+      <Link className="btn" href="/orders" style={{ marginTop: 14 }}>
         {t(lang, "keepSharing")}
       </Link>
     </PatientShell>

@@ -12,8 +12,9 @@ export default async function LoginPage(props: { searchParams: Promise<{ e?: str
 
   return (
     <PatientShell lang={lang}>
+      <span className="eyebrow">{t(lang, "stepOf", { n: "1" })}</span>
       <h1>{t(lang, "loginTitle")}</h1>
-      <p className="muted">{t(lang, "loginHint")}</p>
+      <p className="lede">{t(lang, "loginHint")}</p>
       <form action={requestOtpAction} className="stack">
         {next && <input type="hidden" name="next" value={next} />}
         <div>
@@ -35,8 +36,8 @@ export default async function LoginPage(props: { searchParams: Promise<{ e?: str
         <button className="btn" type="submit">{t(lang, "sendCode")}</button>
       </form>
       {config.mockMessaging && (
-        <p className="small muted" style={{ marginTop: 32 }}>
-          Demo: codes and WhatsApp messages appear in the <a href="/dev/outbox">mock outbox</a>.
+        <p className="demo-note">
+          Demo: try 9000000001. Codes and WhatsApp messages also appear in the <a href="/dev/outbox">mock outbox</a>.
         </p>
       )}
     </PatientShell>

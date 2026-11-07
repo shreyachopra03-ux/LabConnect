@@ -14,8 +14,9 @@ export default async function ConsentPage(props: { searchParams: Promise<{ next?
 
   return (
     <PatientShell lang={lang}>
+      <span className="eyebrow">{t(lang, "secureAccess")}</span>
       <h1>{t(lang, "consentTitle")}</h1>
-      <p>{t(lang, "consentBody")}</p>
+      <p style={{ fontSize: "1.08rem" }}>{t(lang, "consentBody")}</p>
       {s.kind === "PATIENT" && <p className="muted">{t(lang, "consentFamily")}</p>}
       <form action={consentAction} style={{ marginTop: 28 }}>
         {next && <input type="hidden" name="next" value={next} />}

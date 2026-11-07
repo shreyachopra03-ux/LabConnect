@@ -52,7 +52,7 @@ export default async function SummaryReview(props: { searchParams: Promise<{ sho
 
       <div className="grid cols-4" style={{ marginTop: 16 }}>
         <div className="card stat">
-          <div className="num" style={{ color: reviewedThisWeek >= WEEKLY_TARGET ? "var(--accent)" : undefined }}>
+          <div className="num" style={{ color: reviewedThisWeek >= WEEKLY_TARGET ? "var(--forest)" : undefined }}>
             {reviewedThisWeek} / {WEEKLY_TARGET}
           </div>
           <div className="lbl">Reviewed in the last 7 days</div>
@@ -119,7 +119,7 @@ export default async function SummaryReview(props: { searchParams: Promise<{ sho
                   </form>
                   <form action={withdrawSummaryAction}>
                     <input type="hidden" name="summaryId" value={s.id} />
-                    <button className="btn secondary" type="submit" style={{ color: "var(--danger)" }}>
+                    <button className="btn secondary" type="submit" style={{ color: "var(--critical)" }}>
                       Withdraw from patient
                     </button>
                   </form>

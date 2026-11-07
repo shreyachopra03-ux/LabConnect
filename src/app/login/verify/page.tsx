@@ -22,8 +22,9 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
 
   return (
     <PatientShell lang={lang}>
+      <span className="eyebrow">{t(lang, "stepOf", { n: "2" })}</span>
       <h1>{t(lang, "otpTitle")}</h1>
-      <p className="muted">{t(lang, "otpSentTo", { m: maskMobile(mobile) })}</p>
+      <p className="lede" id="otp-hint">{t(lang, "otpSentTo", { m: maskMobile(mobile) })}</p>
       <form action={verifyOtpAction} className="stack">
         {next && <input type="hidden" name="next" value={next} />}
         <input
@@ -32,7 +33,9 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
           inputMode="numeric"
           autoComplete="one-time-code"
           aria-label={t(lang, "otpTitle")}
+          aria-describedby="otp-hint"
           title={t(lang, "otpTitle")}
+          placeholder="••••••"
           required
           autoFocus
         />
@@ -47,9 +50,9 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
         <Link href={withNext("/login", next)}>{t(lang, "changeNumber")}</Link>
       </div>
       {config.mockMessaging && (
-        <p className="notice small" style={{ marginTop: 32 }}>
+        <p className="demo-note">
           {demoCode ? (
-            <>Demo: no real SMS is sent. The latest code for this number is <strong className="mono">{demoCode}</strong>.</>
+            <>Demo: no real SMS is sent. The latest code for this number is <strong>{demoCode}</strong>.</>
           ) : (
             <>Demo: no real SMS is sent, and codes are only issued for numbers that have reports: 9000000001, 9000000002, 9000000099.</>
           )}

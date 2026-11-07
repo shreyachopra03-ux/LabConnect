@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { WorkspaceShell } from "@/components/WorkspaceShell";
 import { DeliveryPill } from "@/components/DeliveryPill";
 import { config } from "@/lib/config";
 import { db } from "@/lib/db";
@@ -12,15 +13,18 @@ export default async function Outbox() {
   const messages = await db.message.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
 
   return (
-    <div className="staff">
-      <div className="staff-wrap">
-        <header className="staff-top">
-          <span className="brand">Mock outbox <span>· demo only</span></span>
-          <nav>
-            <a href="/login">Patient portal</a>
-            <a href="/staff">Front desk</a>
-          </nav>
-        </header>
+    <WorkspaceShell
+      area="Mock outbox"
+      home="/"
+      nav={
+        <>
+          <a href="/login">Patient portal</a>
+          <a href="/staff">Front desk</a>
+        </>
+      }
+    >
+        <span className="eyebrow">Demo only</span>
+        <h1>The patient’s phone</h1>
         <p className="muted">
           Messages are not really sent. This page stands in for the patient’s phone. Open a report link from here, or read the OTP.
         </p>
@@ -45,8 +49,7 @@ export default async function Outbox() {
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+    </WorkspaceShell>
   );
 }
 

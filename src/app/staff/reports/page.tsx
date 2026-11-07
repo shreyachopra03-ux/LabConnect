@@ -86,7 +86,7 @@ export default async function OpsReport(props: { searchParams: Promise<{ days?: 
 }
 
 function Stat({ num, label, tone }: { num: number | string; label: string; tone?: "ok" | "warn" }) {
-  const color = tone === "ok" ? "var(--accent)" : tone === "warn" ? "var(--high)" : undefined;
+  const color = tone === "ok" ? "var(--forest)" : tone === "warn" ? "var(--flag)" : undefined;
   return (
     <div className="card stat">
       <div className="num" style={{ color }}>{num}</div>

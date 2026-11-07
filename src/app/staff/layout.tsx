@@ -16,6 +16,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           {staff && (
             <nav>
               <Link href="/staff">Console</Link>
+              {staff.role === "OPS" && <Link href="/staff/reports">Reports</Link>}
               <Link href="/dev/outbox">Outbox</Link>
               <span className="muted">{staff.name}</span>
               <form action={staffLogoutAction}>

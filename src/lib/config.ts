@@ -16,10 +16,20 @@ export const config = {
   otpTtlMinutes: 5,
   otpMaxAttempts: 5,
   otpMaxPer10Min: 3,
-  otpPepper: process.env.OTP_PEPPER ?? "dev-pepper",
+  otpMaxPerDay: Number(process.env.OTP_MAX_PER_DAY ?? 10),
+  otpLockMinutes: Number(process.env.OTP_LOCK_MINUTES ?? 15),
+  /** Required secret (C009): no default, so a missing value fails loudly instead of silently using a known pepper. */
+  get otpPepper(): string {
+    const v = process.env.OTP_PEPPER;
+    if (!v) throw new Error("Missing required env var OTP_PEPPER");
+    return v;
+  },
 
   mockMessaging: process.env.MOCK_MESSAGING !== "false",
   mockFailWhatsappSuffix: process.env.MOCK_FAIL_WHATSAPP_SUFFIX ?? "99",
+
+  /** C013: hide AI-written sentences from patients until the pathologist has reviewed them. */
+  requireAiReview: process.env.REQUIRE_AI_REVIEW !== "false",
 
   anthropicKey: process.env.ANTHROPIC_API_KEY || undefined,
   summaryModel: process.env.SUMMARY_MODEL ?? "claude-haiku-5-5",

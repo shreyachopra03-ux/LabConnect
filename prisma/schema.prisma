@@ -128,6 +128,7 @@ model Message {
   kind      String // REPORT_LINK | OTP
   body      String
   status    String // QUEUED | DELIVERED | FAILED
+  attempts  Int         @default(0) // provider calls made, including retries (C006)
   error     String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -141,6 +142,7 @@ model Otp {
   codeHash   String
   expiresAt  DateTime
   attempts   Int       @default(0)
+  lastFailedAt DateTime? // for the lockout window (C002)
   consumedAt DateTime?
   createdAt  DateTime  @default(now())
 
@@ -205,4 +207,11 @@ model ImportRun {
   ordersSigned   Int
   errors         String?
   createdAt      DateTime @default(now())
+}
+
+/// Lease lock so only one server instance runs a job (e.g. the LIS import) at a time (C005).
+model WorkerLock {
+  name      String   @id
+  holder    String
+  expiresAt DateTime
 }

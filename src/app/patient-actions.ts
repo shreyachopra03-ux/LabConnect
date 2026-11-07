@@ -6,7 +6,7 @@ import { audit } from "@/lib/audit";
 import { config } from "@/lib/config";
 import { db } from "@/lib/db";
 import { isLang } from "@/lib/i18n";
-import { resolveLink } from "@/lib/links";
+import { resolveLink, revokeActiveLinks } from "@/lib/links";
 import { safeNext, withNext } from "@/lib/nav";
 import { requestOtp, verifyOtp } from "@/lib/otp";
 import { normalizeMobile } from "@/lib/phone";
@@ -130,7 +130,7 @@ export async function withdrawConsentAction() {
   if (!s?.mobile) redirect("/login");
   const now = new Date();
   await db.contact.update({ where: { mobile: s.mobile }, data: { consentAt: null, consentWithdrawnAt: now } });
-  await db.reportLink.updateMany({ where: { mobile: s.mobile, revokedAt: null, expiresAt: { gt: now } }, data: { revokedAt: now } });
+  await revokeActiveLinks({ mobile: s.mobile }, `patient:${s.mobile}`, "consent withdrawn by patient");
   await audit({ actorType: s.kind === "LINK" ? "LINK" : "PATIENT", actorId: s.mobile, action: "CONSENT_WITHDRAWN" });
   await endPatientSession();
   redirect("/privacy?done=1");

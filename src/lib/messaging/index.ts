@@ -1,16 +1,50 @@
 import { config } from "../config";
 import { db } from "../db";
 import type { Lang } from "../i18n";
+import { log } from "../logger";
 
 export type Channel = "WHATSAPP" | "SMS";
 
-async function deliver(channel: Channel, mobile: string, body: string): Promise<{ ok: boolean; error?: string }> {
-  if (!config.mockMessaging) throw new Error("No real messaging provider configured");
+/**
+ * Provider result. `retryable: false` = a permanent failure (e.g. number not on WhatsApp),
+ * so we go straight to the SMS fallback instead of retrying.
+ */
+export type DeliveryResult = { ok: boolean; error?: string; retryable?: boolean };
+export type Provider = (channel: Channel, mobile: string, body: string) => Promise<DeliveryResult>;
+
+/** Mock provider. A real WhatsApp Business / DLT SMS gateway plugs in here. */
+const mockProvider: Provider = async (channel, mobile, body) => {
+  if (!config.mockMessaging) return { ok: false, error: "No real messaging provider configured", retryable: false };
   if (channel === "WHATSAPP" && mobile.endsWith(config.mockFailWhatsappSuffix)) {
-    return { ok: false, error: "Mock: number is not on WhatsApp" };
+    return { ok: false, error: "Mock: number is not on WhatsApp", retryable: false };
   }
-  console.log(`[mock ${channel}] -> ${mobile}: ${body}`);
+  log.info("mock message delivered", { channel, mobile, chars: body.length });
   return { ok: true };
+};
+
+let provider: Provider = mockProvider;
+/** Tests swap the provider to simulate outages. */
+export const setProvider = (p: Provider | null) => {
+  provider = p ?? mockProvider;
+};
+
+export const MAX_ATTEMPTS = 3;
+export const retryDelayMs = (attempt: number) => 200 * 2 ** (attempt - 1); // 200ms, 400ms
+
+/** Calls the provider up to MAX_ATTEMPTS times with exponential back-off (C006). */
+async function deliverWithRetry(channel: Channel, mobile: string, body: string) {
+  let last: DeliveryResult = { ok: false, error: "not attempted" };
+  let attempts = 0;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    attempts = attempt;
+    last = await provider(channel, mobile, body).catch((e) => ({ ok: false, error: String(e), retryable: true }));
+    if (last.ok || last.retryable === false) break;
+    if (attempt < MAX_ATTEMPTS) {
+      log.warn("message delivery failed, retrying", { channel, mobile, attempt, error: last.error });
+      await new Promise((r) => setTimeout(r, retryDelayMs(attempt)));
+    }
+  }
+  return { ...last, attempts };
 }
 
 export async function sendMessage(m: {
@@ -22,10 +56,11 @@ export async function sendMessage(m: {
   linkId?: string;
 }) {
   const msg = await db.message.create({ data: { ...m, status: "QUEUED" } });
-  const r = await deliver(m.channel, m.mobile, m.body).catch((e) => ({ ok: false, error: String(e) }));
+  const r = await deliverWithRetry(m.channel, m.mobile, m.body);
+  if (!r.ok) log.error("message delivery failed", { channel: m.channel, mobile: m.mobile, attempts: r.attempts, error: r.error });
   return db.message.update({
     where: { id: msg.id },
-    data: { status: r.ok ? "DELIVERED" : "FAILED", error: r.ok ? null : r.error },
+    data: { status: r.ok ? "DELIVERED" : "FAILED", error: r.ok ? null : r.error, attempts: r.attempts },
   });
 }
 

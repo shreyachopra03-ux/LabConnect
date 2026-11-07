@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { audit } from "@/lib/audit";
 import { verifyPassword } from "@/lib/crypto";
 import { db } from "@/lib/db";
-import { sendLinkForOrder } from "@/lib/delivery";
+import { releaseHeldLink, sendLinkForOrder } from "@/lib/delivery";
+import { revokeActiveLinks } from "@/lib/links";
 import { demoMode, dropDemoExport } from "@/lib/lis/demo";
 import { scanInbox } from "@/lib/lis/import";
 import { endStaffSession, getStaff, startStaffSession } from "@/lib/session";
@@ -49,6 +50,7 @@ export async function completeCallbackAction(fd: FormData) {
     data: { status: "DONE", doneAt: new Date(), doneBy: staff.name },
   });
   await audit({ actorType: "STAFF", actorId: staff.id, action: "CALLBACK_DONE", orderId: task.orderId });
+  await releaseHeldLink(task.orderId, staff.id);
   revalidatePath("/staff");
 }
 
@@ -108,7 +110,7 @@ export async function recordWithdrawalAction(fd: FormData) {
   if (!patient) redirect("/staff");
   const now = new Date();
   await db.contact.update({ where: { mobile: patient.mobile }, data: { consentAt: null, consentWithdrawnAt: now } });
-  await db.reportLink.updateMany({ where: { mobile: patient.mobile, revokedAt: null, expiresAt: { gt: now } }, data: { revokedAt: now } });
+  await revokeActiveLinks({ mobile: patient.mobile }, staff.id, "consent withdrawal recorded by staff");
   await audit({ actorType: "STAFF", actorId: staff.id, action: "CONSENT_WITHDRAWN", patientId: patient.id, detail: "recorded by staff" });
   redirect(`/staff/patients/${patient.id}`);
 }

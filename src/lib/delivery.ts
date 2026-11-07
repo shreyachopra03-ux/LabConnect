@@ -39,7 +39,19 @@ export async function onReportSigned(orderId: string, opts: { amended?: boolean 
     });
   }
 
+  if (order.isCritical) {
+    // C011: a person calls first. The link is sent when staff complete the callback task.
+    await audit({ actorType: "SYSTEM", actorId: "SYSTEM", action: "LINK_HELD_CRITICAL", orderId, patientId: order.patientId });
+    return;
+  }
   await sendLinkForOrder(orderId, "SYSTEM", undefined, opts.amended);
+}
+
+/** After the critical-value call: release the report link held back on sign-off (C011). */
+export async function releaseHeldLink(orderId: string, staffId: string) {
+  const live = await db.reportLink.count({ where: { orderId, revokedAt: null, expiresAt: { gt: new Date() } } });
+  if (live > 0) return null;
+  return sendLinkForOrder(orderId, staffId);
 }
 
 /**

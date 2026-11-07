@@ -11,12 +11,17 @@ const OTP_PENDING_COOKIE = "cl_otp";
 
 const minutes = (n: number) => new Date(Date.now() + n * 60_000);
 
-async function create(cookie: string, data: Partial<Session> & { kind: string }, expiresAt: Date) {
+/**
+ * Patient cookies are SameSite=Lax so a patient arriving from a WhatsApp link stays signed in.
+ * Staff and doctor cookies are SameSite=Strict (C003). CSRF on forms is handled by Next.js
+ * server actions, which reject cross-origin POSTs (Origin must match Host).
+ */
+async function create(cookie: string, data: Partial<Session> & { kind: string }, expiresAt: Date, sameSite: "lax" | "strict" = "lax") {
   const raw = randomToken(32);
   await db.session.create({ data: { ...data, tokenHash: sha256(raw), expiresAt } });
   (await cookies()).set(cookie, raw, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     expires: expiresAt,
@@ -67,7 +72,7 @@ export const getPendingMobile = async () => (await cookies()).get(OTP_PENDING_CO
 export const clearPendingMobile = async () => (await cookies()).delete(OTP_PENDING_COOKIE);
 
 export const startStaffSession = (staffId: string) =>
-  create(STAFF_COOKIE, { kind: "STAFF", staffId }, minutes(config.staffSessionHours * 60));
+  create(STAFF_COOKIE, { kind: "STAFF", staffId }, minutes(config.staffSessionHours * 60), "strict");
 
 export async function getStaff() {
   const s = await read(STAFF_COOKIE);
@@ -78,7 +83,7 @@ export async function getStaff() {
 export const endStaffSession = () => end(STAFF_COOKIE);
 
 export const startDoctorSession = (doctorId: string) =>
-  create(DOCTOR_COOKIE, { kind: "DOCTOR", doctorId }, minutes(config.staffSessionHours * 60));
+  create(DOCTOR_COOKIE, { kind: "DOCTOR", doctorId }, minutes(config.staffSessionHours * 60), "strict");
 
 export async function getDoctor() {
   const s = await read(DOCTOR_COOKIE);

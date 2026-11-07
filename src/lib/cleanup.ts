@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { log } from "./logger";
 
 /** Removes expired sessions and old OTPs. Access logs and messages are kept (audit trail). */
 export async function purgeExpired() {
@@ -7,5 +8,5 @@ export async function purgeExpired() {
     db.session.deleteMany({ where: { expiresAt: { lt: new Date() } } }),
     db.otp.deleteMany({ where: { createdAt: { lt: dayAgo } } }),
   ]);
-  if (sessions.count || otps.count) console.log(`[cleanup] removed ${sessions.count} sessions, ${otps.count} OTPs`);
+  if (sessions.count || otps.count) log.info("cleanup", { sessions: sessions.count, otps: otps.count });
 }

@@ -14,7 +14,8 @@
     "lis:drop-amendment": "node scripts/drop-sample.mjs amended",
     "db:up": "docker compose up -d db adminer",
     "db:migrate": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "test:integration": "tsx --env-file=.env --test --test-concurrency=1 tests/integration/*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

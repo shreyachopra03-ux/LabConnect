@@ -7,6 +7,8 @@ import { sha256 } from "../crypto";
 import { db } from "../db";
 import { onReportAmended, onReportSigned } from "../delivery";
 import { isLang } from "../i18n";
+import { withLease } from "../lease";
+import { log } from "../logger";
 import { normalizeMobile } from "../phone";
 import { findTest } from "../summary/catalog";
 import { mapStatus, parseCsv, splitParameterUnit } from "./csv";
@@ -20,15 +22,28 @@ const processedDir = () => path.join(config.lisDir, "processed");
 
 let running = false;
 
+/** Lease length: longer than any realistic import batch; renewed implicitly by finishing. */
+const IMPORT_LEASE_MS = 5 * 60_000;
+
+/**
+ * Imports every CSV in the inbox. Guarded twice: an in-process flag, and a database
+ * lease so that only one server instance imports at a time (C005).
+ */
 export async function scanInbox(): Promise<ImportOutcome[]> {
   if (running) return [];
   running = true;
   try {
-    fs.mkdirSync(inboxDir(), { recursive: true });
-    const files = fs.readdirSync(inboxDir()).filter((f) => f.toLowerCase().endsWith(".csv")).sort();
-    const out: ImportOutcome[] = [];
-    for (const f of files) out.push(await importFile(path.join(inboxDir(), f)));
-    return out;
+    const out = await withLease("lis-import", IMPORT_LEASE_MS, async () => {
+      fs.mkdirSync(inboxDir(), { recursive: true });
+      const files = fs.readdirSync(inboxDir()).filter((f) => f.toLowerCase().endsWith(".csv")).sort();
+      const done: ImportOutcome[] = [];
+      for (const f of files) {
+        const file = path.join(inboxDir(), f);
+        if (fs.existsSync(file)) done.push(await importFile(file));
+      }
+      return done;
+    });
+    return out ?? [];
   } finally {
     running = false;
   }
@@ -90,12 +105,12 @@ export async function importFile(file: string): Promise<ImportOutcome> {
   moveToProcessed(file);
 
   for (const id of signed) {
-    await onReportSigned(id).catch((e) => console.error(`[delivery] ${id}:`, e));
+    await onReportSigned(id).catch((e) => log.error("delivery failed", { orderId: id, error: e }));
   }
   for (const id of amended) {
-    await onReportAmended(id).catch((e) => console.error(`[delivery] ${id}:`, e));
+    await onReportAmended(id).catch((e) => log.error("delivery failed", { orderId: id, error: e }));
   }
-  console.log(`[lis] ${name}: ${rows.length} rows, ${byOrder.size} orders, ${signed.length} newly signed, ${amended.length} amended, ${errors.length} errors`);
+  log.info("lis import", { file: name, rows: rows.length, orders: byOrder.size, signed: signed.length, amended: amended.length, errors: errors.length });
   return { file: name, rows: rows.length, orders: byOrder.size, signed, amended, errors };
 }
 

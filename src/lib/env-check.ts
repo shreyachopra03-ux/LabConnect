@@ -1,4 +1,5 @@
 import { config } from "./config";
+import { log } from "./logger";
 
 /**
  * Fail fast instead of running a health-data service with unsafe settings.
@@ -19,5 +20,5 @@ export function assertProductionConfig() {
   if (problems.length) {
     throw new Error(`Unsafe production configuration:\n - ${problems.join("\n - ")}`);
   }
-  if (demo) console.warn("[config] DEMO_MODE is on: mock messaging and the /dev/outbox page are enabled.");
+  if (demo) log.warn("DEMO_MODE is on: mock messaging and the /dev/outbox page are enabled");
 }

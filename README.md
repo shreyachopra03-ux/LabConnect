@@ -13,7 +13,8 @@ This repo covers the **core slice** from the brief end to end, plus all of the o
 | 5 | Front-desk console: find patient, resend, delivery status, access log | `/staff` |
 | 6 | Referring-doctor view: last 90 days of their patients' reports | `/doctor` |
 | 7 | Delivery and access report for the operations head, with CSV export | `/staff/reports` |
-| + | Critical-value callbacks, summary review queue, 30 locked templates | `/staff`, `src/lib/summary/catalog.ts` |
+| 8 | Pathologist review of summaries (50 a week): approve or withdraw | `/staff/summaries` |
+| + | Amended reports re-sent, consent withdrawal, critical-value callbacks, 30 locked templates | `src/lib/lis/import.ts`, `/privacy` |
 
 Messaging, the LIS and the AI are mocked behind small interfaces. The demo is seeded from the sample data in the brief.
 
@@ -38,6 +39,7 @@ npm run dev               # http://localhost:3000
 | Mock phone | `/dev/outbox` | Shows every OTP and WhatsApp/SMS message the system "sent" |
 | Front desk | `/staff` | `frontdesk` / `frontdesk123` |
 | Operations head | `/staff/reports` | `ops` / `frontdesk123` |
+| Pathologist | `/staff/summaries` | `pathologist` / `frontdesk123` |
 | Referring doctor | `/doctor` | `9100000001` (Dr. S. Ramanaiah), `9100000002`, `9100000003`, OTP from the outbox |
 
 ### Demo script (5 minutes)
@@ -50,6 +52,9 @@ npm run dev               # http://localhost:3000
 6. **Front desk.** At `/staff`, review the 7-day delivery stats, the open callback for Farzana and the import history. Search `lakshmi`, then **Resend link** by SMS: the old link stops working. The access log shows every view, download, resend and staff action.
 7. **Referring doctor.** At `/doctor`, log in with `9100000001`. Dr. Ramanaiah sees Lakshmi's and Kamala's reports (not Farzana's, who has a different doctor), can filter by out-of-range or critical, open the results table, download the signed PDF and see what the patient was told.
 8. **Operations head.** Sign in to `/staff` as `ops`, then open **Reports**. It shows digital delivery against the 80% target, open rate, median time to open, WhatsApp vs SMS, failures, resends and callbacks for 7, 30 or 90 days, with a CSV download. The front-desk account can't open it.
+9. **Pathologist review.** Sign in as `pathologist` and open **Summary review**. Each summary is shown with its results and the exact English, Telugu and Hindi text the patient saw. **Approve** it, or **Withdraw from patient**: the patient then sees only the full report and "please show your doctor". A counter tracks the 50-a-week target.
+10. **Amended report.** Run `npm run lis:drop-amendment`. The pathologist has corrected Lakshmi's haemoglobin and re-signed. The importer notices the results changed, rebuilds the summary, revokes the old link and sends an "updated report" message. The report page says it was updated.
+11. **Withdraw consent.** Logged in as a patient, tap **Privacy and consent** in the footer, then **Withdraw consent**. All links for the number stop working, the session ends, and no new links are sent. A front-desk resend is blocked and logged. Logging in again and accepting consent restores sharing. Staff can also record a withdrawal made by phone.
 
 ### Tests
 
@@ -104,11 +109,12 @@ Every page renders on the server and every form also works with JavaScript off. 
 - **Locked templates.** The common tests use pathologist-approved sentences in three languages (`src/lib/summary/catalog.ts`). 30 tests are covered, as the brief asks.
 - **AI fallback.** Tests without a template use Claude, which only explains a direction that the rules already decided. Output is validated JSON with a length cap and an 8-second timeout. On any failure it falls back to "please ask your doctor".
 - **Critical values** get no summary and create a callback task for staff.
-- **Review loop.** Every summary links to the full report, carries a "not a diagnosis" note, and has a **Tell us** button for patients to flag it. Flagged and AI-written summaries go to a review queue in the console, which supports the pathologist's 50-a-week review.
+- **Review loop.** Every summary links to the full report, carries a "not a diagnosis" note, and has a **Tell us** button for patients to flag it. Flagged and AI-written summaries go first in the pathologist's queue, followed by template summaries, so the 50-a-week review also samples locked text. A withdrawn summary is hidden from the patient immediately.
 
 ### DPDP Act 2023
 
 - **Consent** is recorded per mobile number with a version, before any report is shown.
+- **Withdrawal** is as easy as giving consent: one button for the patient, or recorded by staff. It revokes live links and stops all future messages to the number; reports stay with the lab as medical records.
 - **Access log.** An append-only log records who did what, on which order, when and from which IP: patient views, PDF downloads, link opens, staff searches, views and resends.
 - **No health data in messages.** WhatsApp and SMS carry only a first name, the order ID and the link.
 - **Hosting in India.** The production setup is Postgres plus object storage in an Indian region. SQLite is used here only for the demo.
@@ -130,7 +136,6 @@ The design uses one accent colour, white space, a 19px base font and 58px tap ta
 
 ## Next steps
 
-- **Amended reports.** A re-signed report is not re-sent yet.
 - **Per-centre breakdown** in the operations report, once the LIS export includes the collection centre.
 - **Before go-live:** pathologist sign-off on the critical limits and the 30 templates, plus native-speaker review of the Telugu and Hindi copy.
 

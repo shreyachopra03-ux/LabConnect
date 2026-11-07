@@ -23,7 +23,6 @@ type ResultInput = {
 
 const join = (a: L, b: L): L => ({ en: `${a.en} ${b.en}`, te: `${a.te} ${b.te}`, hi: `${a.hi} ${b.hi}` });
 
-/** Builds the plain-language summary for out-of-range values. Not called for critical reports. */
 export async function buildSummary(results: ResultInput[]): Promise<{ source: string; content: SummaryContent }> {
   const items: SummaryItem[] = [];
 
@@ -48,7 +47,6 @@ export async function buildSummary(results: ResultInput[]): Promise<{ source: st
     });
   }
 
-  // TEMPLATE = fully locked text; MIXED = at least one AI or generic sentence (goes to review first).
   const source =
     items.length === 0 ? "NONE_NORMAL" : items.every((i) => i.source === "TEMPLATE") ? "TEMPLATE" : "MIXED";
 

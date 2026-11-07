@@ -1,8 +1,3 @@
-/**
- * Locked, pathologist-approved templates for common tests. Text here is reviewed
- * once and never generated at runtime. The brief targets the 30 most common tests;
- * this demo ships 10, and the shape is the same for the rest.
- */
 export type L = { en: string; te: string; hi: string };
 
 export type TestEntry = {

@@ -1,12 +1,6 @@
 import { config } from "../config";
 import type { L } from "./catalog";
 
-/**
- * AI fallback for out-of-range tests that have no locked template.
- * The model only EXPLAINS a direction that rules already decided; it never decides
- * whether a value is abnormal or critical. Returns null on any failure, and the
- * caller falls back to a generic "ask your doctor" sentence.
- */
 export async function explainWithAi(p: {
   parameter: string;
   unit: string | null;

@@ -3,7 +3,6 @@ export type Flag = "NORMAL" | "LOW" | "HIGH" | "UNKNOWN";
 
 const NUM = String.raw`(-?\d+(?:\.\d+)?)`;
 
-/** Parses LIS reference ranges: "12.0-15.5", "0 - 100", "<200", "<= 5.6", ">40", "up to 34". */
 export function parseRange(text: string): Range | null {
   const t = text.trim().replace(/[–—]/g, "-").replace(/\s+/g, " ");
   let m = t.match(new RegExp(`^${NUM}\\s*-\\s*${NUM}$`));

@@ -1,8 +1,3 @@
-/**
- * Critical (panic) limits. A critical value gets NO patient summary and creates a
- * staff callback task. These limits are illustrative and must be signed off by the
- * lab's pathologist before go-live. The LIS can also mark a report critical itself.
- */
 const CRITICAL: Record<string, { low?: number; high?: number }> = {
   potassium: { low: 2.8, high: 6.2 },
   sodium: { low: 120, high: 160 },

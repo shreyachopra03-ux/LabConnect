@@ -15,7 +15,7 @@ export default async function DoctorHome(props: { searchParams: Promise<{ q?: st
     where: {
       doctorId: doctor.id,
       createdAt: { gte: doctorWindowStart() },
-      ...(query && { OR: [{ id: { contains: query.toUpperCase() } }, { patient: { name: { contains: query } } }] }),
+      ...(query && { OR: [{ id: { contains: query.toUpperCase() } }, { patient: { name: { contains: query, mode: "insensitive" } } }] }),
       ...(f === "ready" && { status: "READY" }),
       ...(f === "abnormal" && { results: { some: { flag: { in: ["HIGH", "LOW"] } } } }),
       ...(f === "critical" && { isCritical: true }),

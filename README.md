@@ -22,13 +22,20 @@ Messaging, the LIS and the AI are mocked behind small interfaces. The demo is se
 
 ## Run it
 
-Needs Node 20+.
+Needs Node 20+ and Docker (for PostgreSQL).
 
 ```bash
 npm install
-cp .env.example .env      # defaults work as-is
-npm run setup             # creates the SQLite DB and seeds it through the real import pipeline
+cp .env.example .env      # then set OTP_PEPPER (command is in the file)
+npm run db:up             # starts PostgreSQL in Docker
+npm run setup             # applies migrations and seeds through the real import pipeline
 npm run dev               # http://localhost:3000
+```
+
+Or run the whole stack in Docker (database, migrations, production build):
+
+```bash
+docker compose --profile app up --build   # http://localhost:3000
 ```
 
 `npm run setup` prints the demo logins and an already-expired link.
@@ -87,7 +94,7 @@ LIS (unchanged) ── writes CSV + signed PDF ──▶ lis-export/inbox, lis-e
             after 72h → OTP to the registered number → full portal
 ```
 
-**Stack:** Next.js 16 (App Router, server components, server actions), TypeScript, Prisma, SQLite.
+**Stack:** Next.js 16 (App Router, server components, server actions), TypeScript, Prisma, PostgreSQL 16, Docker.
 Every page renders on the server and every form also works with JavaScript off. That matters for low-end phones on weak data: the login page is about 9 KB of HTML and uses no web fonts.
 
 ### The hard part: secure expiring links with OTP
@@ -117,7 +124,7 @@ Every page renders on the server and every form also works with JavaScript off. 
 - **Withdrawal** is as easy as giving consent: one button for the patient, or recorded by staff. It revokes live links and stops all future messages to the number; reports stay with the lab as medical records.
 - **Access log.** An append-only log records who did what, on which order, when and from which IP: patient views, PDF downloads, link opens, staff searches, views and resends.
 - **No health data in messages.** WhatsApp and SMS carry only a first name, the order ID and the link.
-- **Hosting in India.** The production setup is Postgres plus object storage in an Indian region. SQLite is used here only for the demo.
+- **Hosting in India.** Postgres and object storage run in an Indian region (for example AWS Mumbai, ap-south-1).
 
 ### Design
 
@@ -131,8 +138,26 @@ The design uses one accent colour, white space, a 19px base font and 58px tap ta
 |---|---|
 | `MOCK_MESSAGING=true`: messages stored and shown at `/dev/outbox` | WhatsApp Business API (approved templates) and a DLT-registered SMS gateway, with delivery receipts by webhook |
 | LIS export simulated by the seed and `lis:drop-sample` | The LIS's real export folder or share. The CSV contract is documented in `src/lib/lis/import.ts` |
-| SQLite, local `storage/` | Postgres and encrypted object storage in an Indian region |
+| Postgres in Docker, PDFs on a local volume | Managed Postgres and encrypted object storage in an Indian region |
 | Seeded staff passwords | SSO or per-staff accounts with role-based access |
+
+## Production readiness
+
+Already in place:
+
+- **PostgreSQL with versioned migrations** (`prisma/migrations`). Deploys run `npm run db:migrate`, never a reset.
+- **Docker image**: multi-stage build, standalone server, non-root user, health check. `docker compose --profile app up` runs database, migrations and app.
+- **Fail-fast config check** (`src/lib/env-check.ts`). In production the app refuses to start with a weak `OTP_PEPPER`, a non-HTTPS `APP_URL`, a non-Postgres database, or mock messaging (unless `DEMO_MODE=true`).
+- **`/api/health`** checks the app and the database for the load balancer.
+- **Cleanup**: expired sessions and old OTPs are purged hourly. Access logs are kept.
+- **Security headers**: HSTS, no framing, no referrer to other sites, `noindex`.
+
+Still needed before real patients use it:
+
+- A real WhatsApp Business API and DLT-registered SMS provider in `src/lib/messaging/` (the only mocked boundary left).
+- PDFs in encrypted object storage (S3 Mumbai) instead of a local volume.
+- HTTPS in front of the app (load balancer or reverse proxy), backups, and monitoring.
+- Run the LIS watcher on one instance only (`LIS_WATCH=true` there, `false` on the others).
 
 ## Next steps
 

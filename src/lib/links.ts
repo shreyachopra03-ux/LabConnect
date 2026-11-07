@@ -2,19 +2,13 @@ import { config } from "./config";
 import { randomToken, sha256 } from "./crypto";
 import { db } from "./db";
 
-/**
- * Secure expiring report links.
- * - 192-bit random token; only its SHA-256 hash is stored, so a DB leak exposes no working links.
- * - Valid for 72 hours, scoped to ONE order. Opening it gives a session for that order only.
- * - Issuing a new link (resend) revokes earlier ones for the same order.
- * - After expiry the link can only be reopened with an OTP sent to the registered mobile.
- */
 export async function issueLink(orderId: string, mobile: string, createdBy: string) {
   const now = new Date();
   await db.reportLink.updateMany({
     where: { orderId, revokedAt: null, expiresAt: { gt: now } },
     data: { revokedAt: now },
   });
+  
   const raw = randomToken(24);
   const link = await db.reportLink.create({
     data: {

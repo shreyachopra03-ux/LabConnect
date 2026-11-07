@@ -1,0 +1,66 @@
+# Local Postgres for development:   docker compose up -d db
+# Full stack (db + migrations + app): docker compose up --build
+services:
+  db:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lab}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lab_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-reports}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lab} -d ${POSTGRES_DB:-reports}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Database viewer in the browser: http://localhost:8080 (local development only)
+  adminer:
+    image: adminer:4.8.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    depends_on:
+      - db
+
+  # Applies pending migrations once, then exits. The app waits for it.
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: npx prisma migrate deploy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab_dev_password}@db:5432/${POSTGRES_DB:-reports}?schema=public
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles: ["app"]
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lab}:${POSTGRES_PASSWORD:-lab_dev_password}@db:5432/${POSTGRES_DB:-reports}?schema=public
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./lis-export:/app/lis-export
+      - reports:/app/storage
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    profiles: ["app"]
+
+volumes:
+  pgdata:
+  reports:

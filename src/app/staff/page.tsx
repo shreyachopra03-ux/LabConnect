@@ -228,7 +228,7 @@ async function searchPatients(q: string) {
   return db.patient.findMany({
     where: {
       OR: [
-        { name: { contains: q } },
+        { name: { contains: q, mode: "insensitive" } },
         ...(full ? [{ mobile: full }] : mobile.length >= 4 ? [{ mobile: { contains: mobile } }] : []),
         { orders: { some: { id: { contains: q.toUpperCase() } } } },
       ],

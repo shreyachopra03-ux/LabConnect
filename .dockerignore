@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.env
+*.db
+*.db-journal
+storage/reports/*
+lis-export/inbox/*
+lis-export/processed/*
+lis-export/reports/*
+lis-export/samples/*
+npm-debug.log*

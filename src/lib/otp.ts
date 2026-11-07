@@ -5,10 +5,6 @@ import { sendOtpSms } from "./messaging";
 
 const hashCode = (mobile: string, code: string) => sha256(`${mobile}:${code}:${config.otpPepper}`);
 
-/**
- * Sends an OTP if the number has reports. The UI response is the same either way,
- * so the form cannot be used to discover which numbers are patients.
- */
 export async function requestOtp(mobile: string, audience: "patient" | "doctor" = "patient"): Promise<"sent" | "rate_limited"> {
   const since = new Date(Date.now() - 10 * 60_000);
   const recent = await db.otp.count({ where: { mobile, createdAt: { gte: since } } });
@@ -32,11 +28,6 @@ export async function requestOtp(mobile: string, audience: "patient" | "doctor" 
 
 export type OtpResult = "ok" | "invalid" | "expired" | "locked";
 
-/**
- * Any unexpired, unused code for the number is accepted, not only the newest one:
- * SMS often arrives late, the user taps "resend", then types the first code.
- * Safe because at most 3 codes exist (rate limit) and attempts are capped across all of them.
- */
 export async function verifyOtp(mobile: string, code: string): Promise<OtpResult> {
   const now = new Date();
   const active = await db.otp.findMany({
@@ -58,7 +49,6 @@ export async function verifyOtp(mobile: string, code: string): Promise<OtpResult
   return "ok";
 }
 
-/** Demo only (mock messaging): the newest code sent to this number, shown on the verify screen. */
 export async function latestMockCode(mobile: string): Promise<string | null> {
   if (!config.mockMessaging) return null;
   const msg = await db.message.findFirst({ where: { mobile, kind: "OTP" }, orderBy: { createdAt: "desc" } });

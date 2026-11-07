@@ -7,11 +7,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "setup": "prisma db push --force-reset --skip-generate && prisma generate && prisma db seed",
+    "setup": "prisma migrate reset --force",
     "lis:drop-sample": "node scripts/drop-sample.mjs signed",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "lis:drop-amendment": "node scripts/drop-sample.mjs amended"
+    "lis:drop-amendment": "node scripts/drop-sample.mjs amended",
+    "db:up": "docker compose up -d db adminer",
+    "db:migrate": "prisma migrate deploy",
+    "db:studio": "prisma studio"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

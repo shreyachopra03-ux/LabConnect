@@ -36,13 +36,9 @@ async function end(cookie: string) {
   (await cookies()).delete(cookie);
 }
 
-/* ---------- Patient ---------- */
-
-/** Full access to every order on this mobile number (after OTP). */
 export const startPatientSession = (mobile: string) =>
   create(PATIENT_COOKIE, { kind: "PATIENT", mobile }, minutes(config.patientSessionMinutes));
 
-/** Access to ONE order, via an unexpired report link. Never outlives the link. */
 export function startLinkSession(mobile: string, orderId: string, linkExpiresAt: Date) {
   const cap = minutes(config.linkSessionMinutes);
   return create(PATIENT_COOKIE, { kind: "LINK", mobile, orderId }, cap < linkExpiresAt ? cap : linkExpiresAt);
@@ -58,8 +54,6 @@ export function canViewOrder(s: Session | null, order: { id: string; patient: { 
   return false;
 }
 
-/* ---------- OTP in progress (which number we sent a code to) ---------- */
-
 export async function setPendingMobile(mobile: string) {
   (await cookies()).set(OTP_PENDING_COOKIE, mobile, {
     httpOnly: true,
@@ -72,8 +66,6 @@ export async function setPendingMobile(mobile: string) {
 export const getPendingMobile = async () => (await cookies()).get(OTP_PENDING_COOKIE)?.value ?? null;
 export const clearPendingMobile = async () => (await cookies()).delete(OTP_PENDING_COOKIE);
 
-/* ---------- Staff ---------- */
-
 export const startStaffSession = (staffId: string) =>
   create(STAFF_COOKIE, { kind: "STAFF", staffId }, minutes(config.staffSessionHours * 60));
 
@@ -84,8 +76,6 @@ export async function getStaff() {
 }
 
 export const endStaffSession = () => end(STAFF_COOKIE);
-
-/* ---------- Referring doctor ---------- */
 
 export const startDoctorSession = (doctorId: string) =>
   create(DOCTOR_COOKIE, { kind: "DOCTOR", doctorId }, minutes(config.staffSessionHours * 60));
@@ -98,6 +88,5 @@ export async function getDoctor() {
 
 export const endDoctorSession = () => end(DOCTOR_COOKIE);
 
-/** Doctors see their own patients' orders from the last 90 days. */
 export const DOCTOR_WINDOW_DAYS = 90;
 export const doctorWindowStart = () => new Date(Date.now() - DOCTOR_WINDOW_DAYS * 86_400_000);

@@ -13,6 +13,7 @@ import { normalizeMobile } from "@/lib/phone";
 import {
   canViewOrder,
   clearPendingMobile,
+  endPatientSession,
   getPatientSession,
   getPendingMobile,
   setPendingMobile,
@@ -68,7 +69,7 @@ export async function consentAction(fd: FormData) {
   if (!s?.mobile) redirect("/login");
   await db.contact.update({
     where: { mobile: s.mobile },
-    data: { consentAt: new Date(), consentVersion: config.consentVersion },
+    data: { consentAt: new Date(), consentVersion: config.consentVersion, consentWithdrawnAt: null },
   });
   await audit({ actorType: s.kind === "LINK" ? "LINK" : "PATIENT", actorId: s.mobile, action: "CONSENT_GIVEN", detail: config.consentVersion });
   redirect(next ?? "/orders");
@@ -119,4 +120,18 @@ export async function flagSummaryAction(fd: FormData) {
   ]);
   await audit({ actorType: s!.kind === "LINK" ? "LINK" : "PATIENT", actorId: s!.mobile ?? "", action: "SUMMARY_FLAGGED", orderId, patientId: order.patientId });
   redirect(`/reports/${orderId}?flagged=1`);
+}
+
+/* ---------- Consent withdrawal (DPDP Act 2023) ---------- */
+
+/** Stops all future report links to this number, revokes current ones and ends the session. */
+export async function withdrawConsentAction() {
+  const s = await getPatientSession();
+  if (!s?.mobile) redirect("/login");
+  const now = new Date();
+  await db.contact.update({ where: { mobile: s.mobile }, data: { consentAt: null, consentWithdrawnAt: now } });
+  await db.reportLink.updateMany({ where: { mobile: s.mobile, revokedAt: null, expiresAt: { gt: now } }, data: { revokedAt: now } });
+  await audit({ actorType: s.kind === "LINK" ? "LINK" : "PATIENT", actorId: s.mobile, action: "CONSENT_WITHDRAWN" });
+  await endPatientSession();
+  redirect("/privacy?done=1");
 }

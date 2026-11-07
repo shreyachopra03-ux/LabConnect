@@ -39,11 +39,12 @@ export default async function ReportPage(props: {
   });
 
   const ready = order.status === "READY";
-  const summary = parseSummary(order.summary?.content);
+  const summaryWithdrawn = !!order.summary?.withdrawnAt;
+  const summary = summaryWithdrawn ? null : parseSummary(order.summary?.content);
   const critical = order.isCritical;
 
   return (
-    <PatientShell lang={lang} showLogout={s.kind === "PATIENT"}>
+    <PatientShell lang={lang} showLogout={s.kind === "PATIENT"} showPrivacy>
       {s.kind === "PATIENT" && (
         <p className="small" style={{ marginTop: -12 }}>
           <Link href="/orders">← {t(lang, "allReports")}</Link>
@@ -61,6 +62,16 @@ export default async function ReportPage(props: {
       </p>
 
       {!ready && <p className="notice">{t(lang, "processingHint")}</p>}
+
+      {ready && order.amendedAt && (
+        <p className="notice" style={{ marginBottom: 24 }}>{t(lang, "amendedNotice", { d: formatDate(order.amendedAt, lang) })}</p>
+      )}
+
+      {ready && !critical && summaryWithdrawn && (
+        <section className="summary">
+          <p style={{ margin: 0 }}>{t(lang, "summaryWithdrawn")}</p>
+        </section>
+      )}
 
       {ready && critical && (
         <section className="critical" role="alert">

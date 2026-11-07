@@ -6,10 +6,12 @@ export function PatientShell({
   lang,
   children,
   showLogout = false,
+  showPrivacy = false,
 }: {
   lang: Lang;
   children: React.ReactNode;
   showLogout?: boolean;
+  showPrivacy?: boolean;
 }) {
   return (
     <div className="shell">
@@ -28,6 +30,7 @@ export function PatientShell({
       <main>{children}</main>
       <footer className="footer">
         <span>{t(lang, "help", { p: config.helpline })}</span>
+        {showPrivacy && <Link href="/privacy">{t(lang, "privacyLink")}</Link>}
         {showLogout && (
           <form action="/logout" method="post">
             <button className="linkbtn" type="submit">

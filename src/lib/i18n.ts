@@ -145,6 +145,40 @@ const dict = {
     hi: "इस नंबर की सभी रिपोर्ट देखें",
   },
   help: { en: "Need help? Call {p}", te: "సహాయం కావాలా? {p} కు ఫోన్ చేయండి", hi: "मदद चाहिए? {p} पर फ़ोन करें" },
+  amendedNotice: {
+    en: "This report was updated on {d}. You are seeing the latest version.",
+    te: "ఈ రిపోర్ట్ {d} న నవీకరించబడింది. మీరు తాజా వెర్షన్ చూస్తున్నారు.",
+    hi: "यह रिपोर्ट {d} को अपडेट की गई। आप नया संस्करण देख रहे हैं।",
+  },
+  summaryWithdrawn: {
+    en: "A simple explanation is not available for this report. Please show the full report to your doctor.",
+    te: "ఈ రిపోర్ట్‌కు సులభమైన వివరణ అందుబాటులో లేదు. దయచేసి పూర్తి రిపోర్ట్‌ను మీ డాక్టర్‌కు చూపించండి.",
+    hi: "इस रिपोर्ट के लिए आसान जानकारी उपलब्ध नहीं है। कृपया पूरी रिपोर्ट अपने डॉक्टर को दिखाएँ।",
+  },
+  privacyLink: { en: "Privacy and consent", te: "గోప్యత మరియు అనుమతి", hi: "गोपनीयता और सहमति" },
+  privacyTitle: {
+    en: "Stop sharing reports with this number",
+    te: "ఈ నంబర్‌కు రిపోర్టులు పంపడం ఆపండి",
+    hi: "इस नंबर पर रिपोर्ट भेजना बंद करें",
+  },
+  privacyBody: {
+    en: "If you withdraw consent, we will stop sending report links to {m}, and all current links will stop working. Your reports stay safely with the lab as medical records. You can collect them at the lab, or give consent again by logging in.",
+    te: "మీరు అనుమతిని ఉపసంహరించుకుంటే, {m} కు రిపోర్ట్ లింకులు పంపడం ఆపేస్తాము, ప్రస్తుత లింకులన్నీ పనిచేయడం ఆగిపోతాయి. మీ రిపోర్టులు వైద్య రికార్డులుగా ల్యాబ్‌లో సురక్షితంగా ఉంటాయి. వాటిని ల్యాబ్‌లో తీసుకోవచ్చు, లేదా మళ్ళీ లాగిన్ అయి అనుమతి ఇవ్వవచ్చు.",
+    hi: "अगर आप सहमति वापस लेते हैं, तो हम {m} पर रिपोर्ट लिंक भेजना बंद कर देंगे और अभी के सभी लिंक काम करना बंद कर देंगे। आपकी रिपोर्ट मेडिकल रिकॉर्ड के रूप में लैब में सुरक्षित रहेंगी। आप उन्हें लैब से ले सकते हैं, या फिर से लॉगिन करके दोबारा सहमति दे सकते हैं।",
+  },
+  privacyFamily: {
+    en: "This applies to everyone registered with this number.",
+    te: "ఇది ఈ నంబర్‌తో నమోదైన అందరికీ వర్తిస్తుంది.",
+    hi: "यह इस नंबर से जुड़े सभी लोगों पर लागू होगा।",
+  },
+  withdrawButton: { en: "Withdraw consent", te: "అనుమతిని ఉపసంహరించుకోండి", hi: "सहमति वापस लें" },
+  keepSharing: { en: "Keep sharing", te: "పంపడం కొనసాగించండి", hi: "भेजना जारी रखें" },
+  withdrawnTitle: { en: "Consent withdrawn", te: "అనుమతి ఉపసంహరించబడింది", hi: "सहमति वापस ले ली गई" },
+  withdrawnBody: {
+    en: "We will not send report links to this number any more. To start again, log in and give consent.",
+    te: "ఇకపై ఈ నంబర్‌కు రిపోర్ట్ లింకులు పంపము. మళ్ళీ ప్రారంభించడానికి, లాగిన్ అయి అనుమతి ఇవ్వండి.",
+    hi: "अब हम इस नंबर पर रिपोर्ट लिंक नहीं भेजेंगे। फिर से शुरू करने के लिए लॉगिन करें और सहमति दें।",
+  },
 } satisfies Record<string, Record<Lang, string>>;
 
 export type MsgKey = keyof typeof dict;

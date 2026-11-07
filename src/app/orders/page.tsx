@@ -28,7 +28,7 @@ export default async function OrdersPage() {
   const empty = patients.every((p) => p.orders.length === 0);
 
   return (
-    <PatientShell lang={lang} showLogout>
+    <PatientShell lang={lang} showLogout showPrivacy>
       <h1>{t(lang, "reportsTitle")}</h1>
       {empty && <p className="muted">{t(lang, "noReports")}</p>}
 

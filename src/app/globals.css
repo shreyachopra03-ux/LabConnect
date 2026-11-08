@@ -487,12 +487,6 @@ tbody tr:hover td { background: #fbf7f0; }
 .auth-panel { max-width: 400px; margin: 56px auto; }
 .auth-panel .btn { width: 100%; }
 
-/* ---------- Loading and errors ---------- */
-.skeleton { display: grid; gap: 14px; }
-.skeleton i { display: block; height: 18px; border-radius: 6px; background: linear-gradient(90deg, var(--cream), var(--paper), var(--cream)); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
-.skeleton i.big { height: 44px; width: 70%; }
-@keyframes shimmer { to { background-position: -200% 0; } }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

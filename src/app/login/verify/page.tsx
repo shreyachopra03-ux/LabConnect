@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import { PatientShell } from "@/components/PatientShell";
 import { config } from "@/lib/config";
@@ -40,12 +41,12 @@ export default async function VerifyPage(props: { searchParams: Promise<{ e?: st
           autoFocus
         />
         {errorKey && <p className="error" role="alert">{t(lang, errorKey)}</p>}
-        <button className="btn" type="submit">{t(lang, "continue")}</button>
+        <SubmitButton pendingLabel={t(lang, "pleaseWait")}>{t(lang, "continue")}</SubmitButton>
       </form>
       <div className="row" style={{ justifyContent: "space-between", marginTop: 20 }}>
         <form action={resendOtpAction}>
           {next && <input type="hidden" name="next" value={next} />}
-          <button className="linkbtn" type="submit">{t(lang, "resend")}</button>
+          <SubmitButton className="linkbtn" pendingLabel={t(lang, "pleaseWait")}>{t(lang, "resend")}</SubmitButton>
         </form>
         <Link href={withNext("/login", next)}>{t(lang, "changeNumber")}</Link>
       </div>

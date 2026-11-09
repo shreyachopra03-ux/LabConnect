@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { fmtTime } from "@/lib/format";
@@ -115,13 +116,13 @@ export default async function SummaryReview(props: { searchParams: Promise<{ sho
                 <div className="row">
                   <form action={approveSummaryAction}>
                     <input type="hidden" name="summaryId" value={s.id} />
-                    <button className="btn" type="submit">Approve</button>
+                    <SubmitButton pendingLabel="Working…">Approve</SubmitButton>
                   </form>
                   <form action={withdrawSummaryAction}>
                     <input type="hidden" name="summaryId" value={s.id} />
-                    <button className="btn secondary" type="submit" style={{ color: "var(--critical)" }}>
+                    <SubmitButton className="btn secondary" style={{ color: "var(--critical)" }} pendingLabel="Working…">
                       Withdraw from patient
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               )}

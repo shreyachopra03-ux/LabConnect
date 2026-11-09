@@ -1,4 +1,5 @@
 import { staffLoginAction } from "../staff-actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function StaffLogin(props: { searchParams: Promise<{ e?: string }> }) {
   const searchParams = await props.searchParams;
@@ -17,7 +18,7 @@ export default async function StaffLogin(props: { searchParams: Promise<{ e?: st
           <input id="p" name="password" type="password" className="input" autoComplete="current-password" required />
         </div>
         {searchParams.e && <p className="error">Wrong username or password.</p>}
-        <button className="btn" type="submit" style={{ width: "100%" }}>Sign in</button>
+        <SubmitButton style={{ width: "100%" }} pendingLabel="Signing in…">Sign in</SubmitButton>
       </form>
     </div>
   );

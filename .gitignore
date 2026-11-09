@@ -12,3 +12,6 @@ lis-export/inbox/*
 lis-export/processed/*
 lis-export/reports/*
 !lis-export/**/.gitkeep
+
+# Submission files (TDD and ZIP are uploaded, not committed)
+submission/

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import { DeliveryPill } from "@/components/DeliveryPill";
 import { audit } from "@/lib/audit";
@@ -122,7 +123,7 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
               <p className="small" style={{ margin: "6px 0 12px" }}>{c.reason}. The report link is held until this call is done; no summary is shown to the patient.</p>
               <form action={completeCallbackAction}>
                 <input type="hidden" name="taskId" value={c.id} />
-                <button className="btn" type="submit">Called · send report link</button>
+                <SubmitButton pendingLabel="Sending link…">Called · send report link</SubmitButton>
               </form>
             </div>
           ))}
@@ -187,16 +188,16 @@ export default async function StaffConsole(props: { searchParams: Promise<{ q?: 
               <>
                 <form action={simulateLisAction}>
                   <input type="hidden" name="which" value="signed" />
-                  <button className="btn secondary" type="submit" title="Demo: the pathologist signs ORD-71219">Simulate sign-off</button>
+                  <SubmitButton className="btn secondary" title="Demo: the pathologist signs ORD-71219" pendingLabel="Working…">Simulate sign-off</SubmitButton>
                 </form>
                 <form action={simulateLisAction}>
                   <input type="hidden" name="which" value="amended" />
-                  <button className="btn secondary" type="submit" title="Demo: ORD-71204 is corrected and re-signed">Simulate amendment</button>
+                  <SubmitButton className="btn secondary" title="Demo: ORD-71204 is corrected and re-signed" pendingLabel="Working…">Simulate amendment</SubmitButton>
                 </form>
               </>
             )}
             <form action={scanLisAction}>
-              <button className="btn secondary" type="submit">Scan export folder now</button>
+              <SubmitButton className="btn secondary" pendingLabel="Scanning…">Scan export folder now</SubmitButton>
             </form>
           </div>
         </div>

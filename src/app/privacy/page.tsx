@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import { PatientShell } from "@/components/PatientShell";
 import { getLang, t } from "@/lib/i18n";
@@ -33,9 +34,9 @@ export default async function PrivacyPage(props: { searchParams: Promise<{ done?
       <p style={{ fontSize: "1.08rem" }}>{t(lang, "privacyBody", { m: maskMobile(s.mobile) })}</p>
       <p className="muted">{t(lang, "privacyFamily")}</p>
       <form action={withdrawConsentAction} className="stack" style={{ marginTop: 28 }}>
-        <button className="btn secondary" type="submit" style={{ color: "var(--critical)" }}>
+        <SubmitButton className="btn secondary" style={{ color: "var(--critical)" }} pendingLabel={t(lang, "pleaseWait")}>
           {t(lang, "withdrawButton")}
-        </button>
+        </SubmitButton>
       </form>
       <Link className="btn" href="/orders" style={{ marginTop: 14 }}>
         {t(lang, "keepSharing")}

@@ -1,4 +1,5 @@
 import { PatientShell } from "@/components/PatientShell";
+import { SubmitButton } from "@/components/SubmitButton";
 import { config } from "@/lib/config";
 import { getLang, t } from "@/lib/i18n";
 import { safeNext } from "@/lib/nav";
@@ -33,7 +34,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ e?: str
           />
         </div>
         {error && <p className="error" role="alert">{error}</p>}
-        <button className="btn" type="submit">{t(lang, "sendCode")}</button>
+        <SubmitButton pendingLabel={t(lang, "pleaseWait")}>{t(lang, "sendCode")}</SubmitButton>
       </form>
       {config.mockMessaging && (
         <p className="demo-note">

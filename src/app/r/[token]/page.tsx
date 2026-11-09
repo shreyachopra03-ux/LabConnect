@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PatientShell } from "@/components/PatientShell";
 import { getLang, t } from "@/lib/i18n";
 import { resolveLink } from "@/lib/links";
@@ -32,9 +33,9 @@ export default async function LinkLanding(props: { params: Promise<{ token: stri
           <p className="lede reveal d1">{t(lang, "linkReadyBody")}</p>
           <form action={openLinkAction} className="reveal d2">
             <input type="hidden" name="token" value={params.token} />
-            <button className="btn light" type="submit">
+            <SubmitButton className="btn light" pendingLabel={t(lang, "pleaseWait")}>
               {t(lang, "openReport")} <span className="arrow" aria-hidden="true">→</span>
-            </button>
+            </SubmitButton>
           </form>
         </>
       )}
@@ -47,7 +48,7 @@ export default async function LinkLanding(props: { params: Promise<{ token: stri
           {searchParams.e === "rate" && <p className="error">{t(lang, "rateLimited")}</p>}
           <form action={linkOtpAction} style={{ marginTop: 8 }}>
             <input type="hidden" name="token" value={params.token} />
-            <button className="btn light" type="submit">{t(lang, "sendCode")}</button>
+            <SubmitButton className="btn light" pendingLabel={t(lang, "pleaseWait")}>{t(lang, "sendCode")}</SubmitButton>
           </form>
         </>
       )}

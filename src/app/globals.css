@@ -487,6 +487,15 @@ tbody tr:hover td { background: #fbf7f0; }
 .auth-panel { max-width: 400px; margin: 56px auto; }
 .auth-panel .btn { width: 100%; }
 
+/* ---------- Pending (loading) state on buttons ---------- */
+.btn[disabled], .linkbtn[disabled] { opacity: 0.75; cursor: progress; }
+.spinner {
+  width: 1em; height: 1em; border-radius: 50%; flex: none;
+  border: 2px solid currentColor; border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

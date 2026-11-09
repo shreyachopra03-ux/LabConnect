@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { redirect } from "next/navigation";
 import { latestMockCode } from "@/lib/otp";
 import { maskMobile } from "@/lib/phone";
@@ -26,7 +27,7 @@ export default async function DoctorVerify(props: { searchParams: Promise<{ e?: 
       <form action={doctorVerifyOtpAction} className="stack" style={{ marginTop: 24 }}>
         <input name="code" className="input" inputMode="numeric" autoComplete="one-time-code" aria-label="Code" required autoFocus />
         {e && ERRORS[e] && <p className="error">{ERRORS[e]}</p>}
-        <button className="btn" type="submit" style={{ width: "100%" }}>Continue</button>
+        <SubmitButton style={{ width: "100%" }} pendingLabel="Checking…">Continue</SubmitButton>
       </form>
       {demoCode && (
         <p className="notice small" style={{ marginTop: 16 }}>

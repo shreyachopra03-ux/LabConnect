@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound, redirect } from "next/navigation";
 import { DeliveryPill } from "@/components/DeliveryPill";
 import { audit } from "@/lib/audit";
@@ -129,7 +130,7 @@ export default async function StaffPatient(props: { params: Promise<{ id: string
                       <option value="WHATSAPP">WhatsApp</option>
                       <option value="SMS">SMS</option>
                     </select>
-                    <button className="btn" type="submit">Resend link</button>
+                    <SubmitButton pendingLabel="Sending…">Resend link</SubmitButton>
                   </form>
                 </div>
               )}

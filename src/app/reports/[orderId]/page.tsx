@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/SubmitButton";
 import { notFound, redirect } from "next/navigation";
 import { PatientShell } from "@/components/PatientShell";
 import { audit } from "@/lib/audit";
@@ -144,7 +145,7 @@ export default async function ReportPage(props: {
                 <form action={flagSummaryAction} style={{ marginTop: 10 }}>
                   <input type="hidden" name="orderId" value={order.id} />
                   <input type="hidden" name="lang" value={lang} />
-                  <button className="btn secondary" type="submit">{t(lang, "flagButton")}</button>
+                  <SubmitButton className="btn secondary" pendingLabel={t(lang, "pleaseWait")}>{t(lang, "flagButton")}</SubmitButton>
                 </form>
               </details>
             ))}

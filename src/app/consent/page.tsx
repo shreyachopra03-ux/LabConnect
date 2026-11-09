@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SubmitButton } from "@/components/SubmitButton";
 import { PatientShell } from "@/components/PatientShell";
 import { getLang, t } from "@/lib/i18n";
 import { safeNext, withNext } from "@/lib/nav";
@@ -20,7 +21,7 @@ export default async function ConsentPage(props: { searchParams: Promise<{ next?
       {s.kind === "PATIENT" && <p className="muted">{t(lang, "consentFamily")}</p>}
       <form action={consentAction} style={{ marginTop: 28 }}>
         {next && <input type="hidden" name="next" value={next} />}
-        <button className="btn" type="submit">{t(lang, "consentAgree")}</button>
+        <SubmitButton pendingLabel={t(lang, "pleaseWait")}>{t(lang, "consentAgree")}</SubmitButton>
       </form>
     </PatientShell>
   );

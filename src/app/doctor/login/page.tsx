@@ -1,4 +1,5 @@
 import { config } from "@/lib/config";
+import { SubmitButton } from "@/components/SubmitButton";
 import { doctorRequestOtpAction } from "../doctor-actions";
 
 const ERRORS: Record<string, string> = {
@@ -20,7 +21,7 @@ export default async function DoctorLogin(props: { searchParams: Promise<{ e?: s
           <input id="m" name="mobile" className="input" type="tel" inputMode="numeric" autoComplete="tel-national" required autoFocus />
         </div>
         {e && ERRORS[e] && <p className="error">{ERRORS[e]}</p>}
-        <button className="btn" type="submit" style={{ width: "100%" }}>Send code</button>
+        <SubmitButton style={{ width: "100%" }} pendingLabel="Sending…">Send code</SubmitButton>
       </form>
       {config.mockMessaging && (
         <p className="small muted" style={{ marginTop: 24 }}>

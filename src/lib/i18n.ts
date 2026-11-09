@@ -145,6 +145,7 @@ const dict = {
     hi: "इस नंबर की सभी रिपोर्ट देखें",
   },
   help: { en: "Need help? Call {p}", te: "సహాయం కావాలా? {p} కు ఫోన్ చేయండి", hi: "मदद चाहिए? {p} पर फ़ोन करें" },
+  pleaseWait: { en: "Please wait…", te: "దయచేసి వేచి ఉండండి…", hi: "कृपया प्रतीक्षा करें…" },
   notFoundTitle: { en: "We couldn’t find that page.", te: "ఆ పేజీ కనబడలేదు.", hi: "वह पेज नहीं मिला।" },
   notFoundBody: {
     en: "The report may belong to another number, or the address may be wrong. Your own reports are one tap away.",
